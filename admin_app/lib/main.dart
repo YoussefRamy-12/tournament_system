@@ -2,6 +2,7 @@ import 'package:admin_app/database/db_helper.dart';
 import 'package:admin_app/server/tournament_server.dart';
 import 'package:admin_app/ui/admin_history_screen.dart';
 import 'package:admin_app/ui/connection_screen.dart';
+import 'package:admin_app/ui/full_control_screen.dart';
 import 'package:admin_app/ui/leader_approval_screen.dart';
 import 'package:admin_app/ui/leaderboard_screen.dart';
 import 'package:admin_app/ui/projector_screen.dart';
@@ -194,6 +195,17 @@ class _MyHomePageState extends State<MyHomePage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => ProjectorStatsScreen(),
+                    ),
+                  ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.rate_review),
+              title: const Text('full control screen'),
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FullControlScreen(),
                     ),
                   ),
             ),

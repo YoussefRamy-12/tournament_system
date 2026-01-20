@@ -276,8 +276,8 @@ class DatabaseHelper {
 
   // Gets top N individual players
   Future<List<Map<String, dynamic>>> getTop10Players() async {
-  final db = await database;
-  return await db.rawQuery('''
+    final db = await database;
+    return await db.rawQuery('''
     SELECT 
       Members.id, 
       Members.name, 
@@ -291,10 +291,12 @@ class DatabaseHelper {
     ORDER BY totalScore DESC
     LIMIT 10
   ''');
-}
+  }
+
   Future<List<Map<String, dynamic>>> getTeamPlayers(int teamId) async {
-  final db = await database;
-  return await db.rawQuery('''
+    final db = await database;
+    return await db.rawQuery(
+      '''
     SELECT 
       M.id, 
       M.name, 
@@ -304,12 +306,15 @@ class DatabaseHelper {
     FROM Members M
     WHERE M.team_id = ?
     ORDER BY M.name ASC
-  ''', [teamId]);
-}
+  ''',
+      [teamId],
+    );
+  }
 
-Future<Map<String, dynamic>> getTeamSummary(int teamId) async {
-  final db = await database;
-  final result = await db.rawQuery('''
+  Future<Map<String, dynamic>> getTeamSummary(int teamId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      '''
     SELECT 
       COUNT(M.id) as memberCount,
       IFNULL(AVG(member_scores.total), 0) as teamAverage,
@@ -323,10 +328,22 @@ Future<Map<String, dynamic>> getTeamSummary(int teamId) async {
       GROUP BY target_id
     ) member_scores ON M.id = member_scores.id
     WHERE M.team_id = ?
-  ''', [teamId]);
+  ''',
+      [teamId],
+    );
+
+    return result.first;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllTeams() async {
+    final db = await database;
+    // We fetch only the ID and Name to keep the dropdown lightweight
+    return await db.query(
+      'Teams',
+      columns: ['id', 'name'],
+      orderBy: 'name ASC',
+    );
+  }
+
   
-  return result.first;
-}
-
-
 }
