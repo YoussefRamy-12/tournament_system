@@ -307,5 +307,26 @@ class DatabaseHelper {
   ''', [teamId]);
 }
 
+Future<Map<String, dynamic>> getTeamSummary(int teamId) async {
+  final db = await database;
+  final result = await db.rawQuery('''
+    SELECT 
+      COUNT(M.id) as memberCount,
+      IFNULL(AVG(member_scores.total), 0) as teamAverage,
+      (SELECT name FROM Members WHERE id = member_scores.id) as topPlayerName,
+      MAX(IFNULL(member_scores.total, 0)) as topPlayerScore
+    FROM Members M
+    LEFT JOIN (
+      SELECT target_id as id, SUM(points) as total 
+      FROM Transactions 
+      WHERE status = 'APPROVED' 
+      GROUP BY target_id
+    ) member_scores ON M.id = member_scores.id
+    WHERE M.team_id = ?
+  ''', [teamId]);
+  
+  return result.first;
+}
+
 
 }

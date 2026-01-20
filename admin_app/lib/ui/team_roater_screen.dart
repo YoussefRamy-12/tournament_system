@@ -21,7 +21,9 @@ class TeamRosterScreen extends StatelessWidget {
         future: _dbHelper.getTeamPlayers(teamId),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: Colors.amber));
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.amber),
+            );
           }
 
           final members = snapshot.data!;
@@ -30,23 +32,64 @@ class TeamRosterScreen extends StatelessWidget {
             children: [
               // Header Row
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
-                    Text("Member Name", style: TextStyle(color: Colors.white54, fontSize: 16)),
-                    Text("Total Points", style: TextStyle(color: Colors.white54, fontSize: 16)),
+                    Text(
+                      "Member Name",
+                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                    Text(
+                      "Total Points",
+                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
                   ],
                 ),
               ),
               const Divider(color: Colors.white10, height: 1),
-              
+              // Inside the build method of TeamRosterScreen, above the Expanded ListView
+              FutureBuilder<Map<String, dynamic>>(
+                future: _dbHelper.getTeamSummary(teamId),
+                builder: (context, summarySnapshot) {
+                  if (!summarySnapshot.hasData) return const SizedBox();
+                  final summary = summarySnapshot.data!;
+
+                  return Container(
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatItem(
+                          "Average",
+                          "${summary['teamAverage'].toStringAsFixed(1)}",
+                        ),
+                        _buildStatItem(
+                          "Top Player",
+                          "${summary['topPlayerName'] ?? 'N/A'}",
+                        ),
+                        _buildStatItem("Members", "${summary['memberCount']}"),
+                      ],
+                    ),
+                  );
+                },
+              ),
               // List of Members
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: members.length,
-                  separatorBuilder: (context, index) => const Divider(color: Colors.white10),
+                  separatorBuilder:
+                      (context, index) => const Divider(color: Colors.white10),
                   itemBuilder: (context, index) {
                     final m = members[index];
                     final int score = m['memberTotal'] ?? 0;
@@ -58,12 +101,18 @@ class TeamRosterScreen extends StatelessWidget {
                       },
                       title: Text(
                         m['name'],
-                        style: const TextStyle(color: Colors.white, fontSize: 22),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                        ),
                       ),
                       trailing: Text(
                         "$score pts",
                         style: TextStyle(
-                          color: score >= 0 ? Colors.greenAccent : Colors.redAccent,
+                          color:
+                              score >= 0
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
@@ -79,26 +128,48 @@ class TeamRosterScreen extends StatelessWidget {
     );
   }
 
-  // Helper to trigger the dialog you want
-  void _showPlayerDetails(BuildContext context, Map<String, dynamic> member, String tName) async {
-     // Prepare the data map to match what your Player Details dialog expects
-     final player = {
-       'id': member['id'],
-       'name': member['name'],
-       'teamName': tName,
-       'totalScore': member['memberTotal'] ?? 0,
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white54, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.amber,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
 
-     };
+  // Helper to trigger the dialog you want
+  void _showPlayerDetails(
+    BuildContext context,
+    Map<String, dynamic> member,
+    String tName,
+  ) async {
+    // Prepare the data map to match what your Player Details dialog expects
+    final player = {
+      'id': member['id'],
+      'name': member['name'],
+      'teamName': tName,
+      'totalScore': member['memberTotal'] ?? 0,
+    };
 
     final allTransactions = await _dbHelper.getAllTransactions();
 
-
-     final playerHistory =
+    final playerHistory =
         allTransactions.where((t) => t['target_id'] == player['id']).toList();
-     
-     // Call your existing dialog function here
-     // showDialog(context: context, builder: (...) => ...) 
-     showDialog(
+
+    // Call your existing dialog function here
+    // showDialog(context: context, builder: (...) => ...)
+    showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
@@ -132,7 +203,10 @@ class TeamRosterScreen extends StatelessWidget {
                   Text(
                     "${player['totalScore'] ?? 0} pts",
                     style: TextStyle(
-                      color:  player['totalScore'] >= 0? Colors.greenAccent : Colors.redAccent,
+                      color:
+                          player['totalScore'] >= 0
+                              ? Colors.greenAccent
+                              : Colors.redAccent,
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
                     ),
