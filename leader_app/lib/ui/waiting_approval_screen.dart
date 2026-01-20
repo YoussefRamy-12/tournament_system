@@ -5,7 +5,7 @@ import '../network/api_client.dart';
 import '../network/connection_manager.dart';
 
 class WaitingApprovalScreen extends StatefulWidget {
-  const WaitingApprovalScreen({Key? key}) : super(key: key);
+  const WaitingApprovalScreen({super.key});
 
   @override
   State<WaitingApprovalScreen> createState() => _WaitingApprovalScreenState();

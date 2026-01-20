@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../network/api_client.dart'; // Ensure this points to your client
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({Key? key}) : super(key: key);
+  const HistoryScreen({super.key});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();

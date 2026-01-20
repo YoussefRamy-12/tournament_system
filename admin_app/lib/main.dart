@@ -4,6 +4,7 @@ import 'package:admin_app/ui/admin_history_screen.dart';
 import 'package:admin_app/ui/connection_screen.dart';
 import 'package:admin_app/ui/leader_approval_screen.dart';
 import 'package:admin_app/ui/leaderboard_screen.dart';
+import 'package:admin_app/ui/projector_screen.dart';
 import 'package:admin_app/ui/review_screen.dart';
 import 'package:admin_app/ui/setup_screen.dart';
 import 'package:flutter/material.dart';
@@ -182,6 +183,17 @@ class _MyHomePageState extends State<MyHomePage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => AdminHistoryScreen(),
+                    ),
+                  ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.rate_review),
+              title: const Text('projector screen'),
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProjectorStatsScreen(),
                     ),
                   ),
             ),

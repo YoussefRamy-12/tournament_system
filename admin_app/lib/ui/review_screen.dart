@@ -87,8 +87,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _dbHelper.getPendingTransactions(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           final items = snapshot.data!;
           if (items.isEmpty) {

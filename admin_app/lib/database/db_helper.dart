@@ -173,6 +173,7 @@ class DatabaseHelper {
     return await db.rawQuery('''
     SELECT 
       teams.name, 
+      teams.id,
       SUM(transactions.points) as totalScore
     FROM teams
     LEFT JOIN members ON teams.id = members.team_id
@@ -256,4 +257,55 @@ class DatabaseHelper {
       whereArgs: [transactionId],
     );
   }
+
+  // Gets team totals for the leaderboard
+  Future<List<Map<String, dynamic>>> getTeamStats() async {
+    final db = await database;
+
+    return await db.rawQuery('''
+    SELECT 
+      T.name AS team_name, 
+      SUM(CASE WHEN TR.status = 'approved' THEN TR.points ELSE 0 END) AS total_points
+    FROM Teams T
+    LEFT JOIN Members M ON T.id = M.team_id
+    LEFT JOIN Transactions TR ON M.id = TR.target_id
+    GROUP BY T.id, T.name
+    ORDER BY total_points DESC
+  ''');
+  }
+
+  // Gets top N individual players
+  Future<List<Map<String, dynamic>>> getTop10Players() async {
+  final db = await database;
+  return await db.rawQuery('''
+    SELECT 
+      Members.id, 
+      Members.name, 
+      Teams.name AS teamName, 
+      SUM(Transactions.points) as totalScore
+    FROM Members
+    JOIN Teams ON Members.team_id = Teams.id
+    LEFT JOIN Transactions ON Members.id = Transactions.target_id
+    WHERE Transactions.status = 'APPROVED'
+    GROUP BY Members.id
+    ORDER BY totalScore DESC
+    LIMIT 10
+  ''');
+}
+  Future<List<Map<String, dynamic>>> getTeamPlayers(int teamId) async {
+  final db = await database;
+  return await db.rawQuery('''
+    SELECT 
+      M.id, 
+      M.name, 
+      (SELECT IFNULL(SUM(points), 0) 
+       FROM Transactions 
+       WHERE target_id = M.id AND status = 'APPROVED') as memberTotal
+    FROM Members M
+    WHERE M.team_id = ?
+    ORDER BY M.name ASC
+  ''', [teamId]);
+}
+
+
 }

@@ -36,8 +36,9 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen> {
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _dbHelper.getAllLeaders(), // Fetch everyone
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           final allLeaders = snapshot.data!;
           if (allLeaders.isEmpty) {

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:leader_app/main.dart';
 import 'package:leader_app/network/api_client.dart';
 import 'package:leader_app/ui/history_screen.dart';
 import 'package:leader_app/ui/member_selector.dart';
@@ -48,15 +47,15 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     // Determine wait time based on failure count
     int secondsToWait;
     if (_failureCount == 0) {
-      secondsToWait = 2; // Healthy: Check every 15s
+      secondsToWait = 15; // Healthy: Check every 15s
     } else if (_failureCount == 1) {
-      secondsToWait = 3; // First fail: Check again quickly
+      secondsToWait = 5; // First fail: Check again quickly
     } else if (_failureCount == 2) {
-      secondsToWait = 5;
+      secondsToWait = 10;
     } else if (_failureCount == 3) {
-      secondsToWait = 6;
+      secondsToWait = 30;
     } else {
-      secondsToWait = 10; // Major issue: Check once a minute
+      secondsToWait = 60; // Major issue: Check once a minute
     }
 
     _heartbeatTimer = Timer(Duration(seconds: secondsToWait), () {

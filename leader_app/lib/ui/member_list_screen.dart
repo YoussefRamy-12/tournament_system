@@ -8,21 +8,22 @@ class MemberListScreen extends StatelessWidget {
   final Team team;
   final ApiClient _apiClient = ApiClient();
 
-  MemberListScreen({Key? key, required this.team}) : super(key: key);
+  MemberListScreen({super.key, required this.team});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('${team.name} Members')),
       body: FutureBuilder<List<Member>>(
-        future: _apiClient.fetchMembers(team.id!), // Use the ID from Phase 1
+        future: _apiClient.fetchMembers(team.id), // Use the ID from Phase 1
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError)
+          if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
+          }
 
           final members = snapshot.data ?? [];
           if (members.isEmpty) {

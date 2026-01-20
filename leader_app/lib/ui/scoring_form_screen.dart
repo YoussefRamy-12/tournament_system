@@ -14,10 +14,10 @@ class ScoringFormScreen extends StatefulWidget {
 
 class _ScoringFormScreenState extends State<ScoringFormScreen> {
   final ApiClient _apiClient = ApiClient();
-  TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   int _points = 0;
   String? _selectedTag;
-  String _description = '';
+  final String _description = '';
   bool _isSubmitting = false;
 
   @override
@@ -139,10 +139,10 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
 
   Future<void> _submitScore() async {
   final conn = ConnectionManager();
-  final leader_id = await conn.getOrGenerateLeaderId();
+  final leaderId = await conn.getOrGenerateLeaderId();
 
   // 1. Ask the server: "Am I still allowed to do this?"
-  final status = await _apiClient.checkLeaderStatus(leader_id);
+  final status = await _apiClient.checkLeaderStatus(leaderId);
 
   if (status != 'APPROVED') {
     // 2. If rejected or blocked, kick them back to the waiting screen
@@ -156,12 +156,12 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   }
 
   // 3. Only if APPROVED, proceed with the actual submission
-      print("leader id is $leader_id");
+      print("leader id is $leaderId");
 
     final transaction = ScoreTransaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       memberId: widget.member.id,
-      leaderId: leader_id,
+      leaderId: leaderId,
       points:
           _points, // Fixed: your code used _selectedPoints which didn't exist
       tag: _selectedTag!,

@@ -5,6 +5,8 @@ import '../server/network_service.dart';
 class ConnectionScreen extends StatelessWidget {
   final NetworkService _networkService = NetworkService();
 
+  ConnectionScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

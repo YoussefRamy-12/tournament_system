@@ -9,7 +9,7 @@ class TournamentServer {
   Future<void> start() async {
     final handler = Pipeline()
         .addMiddleware(logRequests()) // Shows all incoming requests in your console
-        .addHandler(ApiRouter().router);
+        .addHandler(ApiRouter().router.call);
 
     // Bind to 0.0.0.0 to listen to any device on the Wi-Fi
     // Port 8080 is standard and safe

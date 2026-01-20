@@ -4,7 +4,7 @@ import '../network/api_client.dart';
 import 'member_list_screen.dart'; // Move the second screen to its own file
 
 class MemberSelector extends StatefulWidget {
-  const MemberSelector({Key? key}) : super(key: key);
+  const MemberSelector({super.key});
 
   @override
   State<MemberSelector> createState() => _MemberSelectorState();

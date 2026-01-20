@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../database/db_helper.dart'; // Import your local DB helper
 
 class AdminHistoryScreen extends StatefulWidget {
-  const AdminHistoryScreen({Key? key}) : super(key: key);
+  const AdminHistoryScreen({super.key});
 
   @override
   State<AdminHistoryScreen> createState() => _AdminHistoryScreenState();

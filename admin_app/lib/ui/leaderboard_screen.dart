@@ -4,6 +4,8 @@ import '../database/db_helper.dart';
 class LeaderboardScreen extends StatelessWidget {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
+  LeaderboardScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

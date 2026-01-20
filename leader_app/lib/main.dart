@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:leader_app/network/api_client.dart';
 import 'package:leader_app/network/connection_manager.dart';
 // import 'package:leader_app/ui/MyHomePage.dart';

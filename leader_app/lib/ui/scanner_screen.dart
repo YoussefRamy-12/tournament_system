@@ -3,7 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../network/connection_manager.dart';
 
 class ScannerScreen extends StatefulWidget {
-  const ScannerScreen({Key? key}) : super(key: key);
+  const ScannerScreen({super.key});
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
