@@ -13,8 +13,6 @@ class MemberSelector extends StatefulWidget {
 class _MemberSelectorState extends State<MemberSelector> {
   final ApiClient _apiClient = ApiClient();
   late Future<List<Team>> _teamsFuture;
-  bool _isOnline = true;
-  bool _isReconnecting = false;
 
   void _refreshData() {
     setState(() {
@@ -40,7 +38,7 @@ class _MemberSelectorState extends State<MemberSelector> {
             tooltip: 'Reconnect to Laptop',
             onPressed: () async {
               setState(() {
-                _isReconnecting = true;
+                // Trigger UI updates
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -48,16 +46,15 @@ class _MemberSelectorState extends State<MemberSelector> {
                 ),
               );
               String? found = await _apiClient.findNewServerIP();
+              if (!context.mounted) return;
               if (found != null) {
                 _refreshData();
                 setState(() {
-                  _isReconnecting = false;
-                  _isOnline = true;
+                  // Connection restored
                 });
               } else {
                 setState(() {
-                  _isReconnecting = false;
-                  _isOnline = false;
+                  // Still disconnected
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -117,7 +114,7 @@ class _MemberSelectorState extends State<MemberSelector> {
                     ElevatedButton(
                       onPressed: () async {
                         setState(() {
-                          _isReconnecting = true;
+                          // Trigger UI updates
                         });
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -127,16 +124,15 @@ class _MemberSelectorState extends State<MemberSelector> {
                           ),
                         );
                         String? found = await _apiClient.findNewServerIP();
+                        if (!context.mounted) return;
                         if (found != null) {
                           _refreshData();
                           setState(() {
-                            _isReconnecting = false;
-                            _isOnline = true;
+                            // Reconnected
                           });
                         } else {
                           setState(() {
-                            _isReconnecting = false;
-                            _isOnline = false;
+                            // Still disconnected
                           });
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

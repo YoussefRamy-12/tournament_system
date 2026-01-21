@@ -131,7 +131,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -139,9 +139,6 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
             // Triggers the member list dialog we created
             onTap: () {
               final teamId = team['id'];
-              print("Tapped on team: $teamId");
-              final teamName = team['name'] ?? 'Unknown Team';
-              print("Team Name: $teamName");
 
               if (teamId != null) {
                 Navigator.push(
@@ -155,7 +152,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
                   ),
                 );
               } else {
-                debugPrint("Error: Team ID is null for $teamName");
+                // debugPrint("Error: Team ID is null for $teamName");
                 // Optional: Show a snackbar so you know why it didn't open
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Cannot open team: Missing ID")),
@@ -383,6 +380,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
         playerHistory.where((t) => t['status'] == 'REJECTED').toList();
     final pending =
         playerHistory.where((t) => t['status'] == 'PENDING').toList();
+    if (!mounted) return;
     showDialog(
       context: context,
       builder:
@@ -507,48 +505,40 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
         ),
         // We use a Column here instead of a ListView.builder because
         // the parent is already a scrollable ListView.
-        ...items
-            .map(
-              (t) => Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 50,
-                      child: Text(
-                        "${t['points']}",
-                        style: TextStyle(
-                          color:
-                              (t['points'] ?? 0) < 0
-                                  ? Colors.redAccent
-                                  : Colors.greenAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
+        ...items.map(
+          (t) => Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 50,
+                  child: Text(
+                    "${t['points']}",
+                    style: TextStyle(
+                      color:
+                          (t['points'] ?? 0) < 0
+                              ? Colors.redAccent
+                              : Colors.greenAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        "${t['tag'] ?? 'Points'}",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      "${t['timestamp']?.toString().split(' ')[0]}",
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            )
-            .toList(),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "${t['tag'] ?? 'Points'}",
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ),
+                Text(
+                  "${t['timestamp']?.toString().split(' ')[0]}",
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ),
         const Divider(color: Colors.white10),
       ],
     );

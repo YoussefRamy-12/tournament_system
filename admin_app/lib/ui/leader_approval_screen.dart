@@ -114,9 +114,9 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
             borderRadius: BorderRadius.circular(12),
-            color: color.withOpacity(0.02),
+            color: color.withValues(alpha: 0.02),
           ),
           child: ListView.separated(
             shrinkWrap: true,
@@ -124,14 +124,14 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen> {
             itemCount: items.length,
             separatorBuilder:
                 (context, index) =>
-                    Divider(color: color.withOpacity(0.1), height: 1),
+                    Divider(color: color.withValues(alpha: 0.1), height: 1),
             itemBuilder: (context, index) {
               final leader = items[index];
               final String currentStatus = leader['status'];
 
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: color.withOpacity(0.2),
+                  backgroundColor: color.withValues(alpha: 0.2),
                   child: Icon(Icons.person, color: color),
                 ),
                 title: Text(

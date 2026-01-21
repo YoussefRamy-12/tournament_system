@@ -25,6 +25,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final count = (await _dbHelper.getPendingTransactions()).length;
     if (count == 0) return;
 
+    if (!mounted) return;
     bool confirm =
         await showDialog(
           context: context,

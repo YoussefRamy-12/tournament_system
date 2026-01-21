@@ -17,7 +17,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   int _points = 0;
   String? _selectedTag;
-  final String _description = '';
+
   bool _isSubmitting = false;
 
   @override
@@ -94,7 +94,6 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
                 border: OutlineInputBorder(),
                 labelText: 'Description (Optional)',
                 hintText: 'Add any additional details...',
-              
               ),
               maxLines: 3,
               // onChanged: (value) => setState(() => _description = value),
@@ -138,25 +137,32 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   }
 
   Future<void> _submitScore() async {
-  final conn = ConnectionManager();
-  final leaderId = await conn.getOrGenerateLeaderId();
+    final conn = ConnectionManager();
+    final leaderId = await conn.getOrGenerateLeaderId();
 
-  // 1. Ask the server: "Am I still allowed to do this?"
-  final status = await _apiClient.checkLeaderStatus(leaderId);
+    // 1. Ask the server: "Am I still allowed to do this?"
+    final status = await _apiClient.checkLeaderStatus(leaderId);
 
-  if (status != 'APPROVED') {
-    // 2. If rejected or blocked, kick them back to the waiting screen
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Access Revoked: Your account is no longer approved."))
-      );
-      Navigator.pushNamedAndRemoveUntil(context, '/waiting_approval', (route) => false);
+    if (status != 'APPROVED') {
+      // 2. If rejected or blocked, kick them back to the waiting screen
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Access Revoked: Your account is no longer approved.",
+            ),
+          ),
+        );
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/waiting_approval',
+          (route) => false,
+        );
+      }
+      return;
     }
-    return;
-  }
 
-  // 3. Only if APPROVED, proceed with the actual submission
-      print("leader id is $leaderId");
+    // 3. Only if APPROVED, proceed with the actual submission
 
     final transaction = ScoreTransaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

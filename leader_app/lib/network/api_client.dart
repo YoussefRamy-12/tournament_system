@@ -55,7 +55,7 @@ class ApiClient {
       // 3. Return true if the laptop says "OK" (200)
       return response.statusCode == 200;
     } catch (e) {
-      print("Error submitting score: $e");
+      // print("Error submitting score: $e");
       return false;
     }
   }
@@ -85,11 +85,11 @@ class ApiClient {
         final data = jsonDecode(response.body);
         return data['status']; // 'PENDING', 'APPROVED', 'REJECTED'
       } else {
-        print("Server returned status: ${response.statusCode}");
+        // print("Server returned status: ${response.statusCode}");
         return 'ERROR';
       }
     } catch (e) {
-      print("Network error checking status: $e");
+      // print("Network error checking status: $e");
       return 'CONNECTION_ERROR';
     }
   }
@@ -118,7 +118,7 @@ class ApiClient {
     final parts = uri.host.split('.');
     if (parts.length < 4) return null;
     final String subnet = "${parts[0]}.${parts[1]}.${parts[2]}";
-    print("Scanning subnet: $subnet.XXX");
+    // print("Scanning subnet: $subnet.XXX");
 
     // Scan all IPs on the subnet (1 to 254)
     // We use a list of futures to scan many IPs at once (much faster)
@@ -126,7 +126,7 @@ class ApiClient {
 
     for (int i = 1; i < 255; i++) {
       final String testIp = 'http://$subnet.$i:8080';
-      print(  "Checking $testIp");
+      // print(  "Checking $testIp");
       scans.add(_checkIp(testIp));
     }
 
@@ -135,7 +135,7 @@ class ApiClient {
     for (var result in results) {
       if (result != null) {
         await _connection.saveUrl(result); // Auto-save the new IP
-        print("New server found at $result");
+        // print("New server found at $result");
         return result;
       }
     }
@@ -148,7 +148,7 @@ class ApiClient {
           .get(Uri.parse('$url/ping'))
           .timeout(const Duration(milliseconds: 500)); // Very fast timeout
       if (response.statusCode == 200 && response.body == 'pong') {
-        print("Found server at $url");
+        // print("Found server at $url");
         return url;
       }
     } catch (_) {}

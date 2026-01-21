@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
-  
+
   @override
   State<SetupScreen> createState() => _SetupScreenState();
 }
@@ -23,29 +23,33 @@ class _SetupScreenState extends State<SetupScreen> {
 
       if (result != null) {
         final csvService = CsvService();
-        
+
         // Check if database has existing data
         final hasData = await csvService.hasExistingData();
-        
+
         if (hasData) {
           // Clear existing rows before importing
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Data Exist!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Data Exist!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
           await csvService.clearAllMembers();
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Data Cleared!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Data Cleared!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         }
-        
+
         await csvService.importMembersFromCsv(result.files.single.path!);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -79,17 +83,21 @@ class _SetupScreenState extends State<SetupScreen> {
           children: [
             const Icon(Icons.upload_file, size: 64, color: Colors.blue),
             const SizedBox(height: 20),
-            const Text('Import Members from CSV', style: TextStyle(fontSize: 18)),
+            const Text(
+              'Import Members from CSV',
+              style: TextStyle(fontSize: 18),
+            ),
             const SizedBox(height: 30),
             ElevatedButton.icon(
               onPressed: _isLoading ? null : _pickAndImportCsv,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.folder_open),
+              icon:
+                  _isLoading
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.folder_open),
               label: Text(_isLoading ? 'Importing...' : 'Pick CSV File'),
             ),
           ],

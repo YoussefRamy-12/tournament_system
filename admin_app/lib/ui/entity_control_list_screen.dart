@@ -25,6 +25,7 @@ class _EntityControlListState extends State<EntityControlList> {
   void _refreshData() async {
     final db = await _db.database;
     final res = await db.query(widget.type, orderBy: 'name ASC');
+    if (!mounted) return;
     setState(() {
       _data = res;
       _applySearch(); // Update the filtered list
@@ -54,7 +55,11 @@ class _EntityControlListState extends State<EntityControlList> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () => widget.type == "Members" ? _showPlayerEditorDialog(null) : _showEditorDialog(null), // Null means "Add New"
+        onPressed:
+            () =>
+                widget.type == "Members"
+                    ? _showPlayerEditorDialog(null)
+                    : _showEditorDialog(null), // Null means "Add New"
         child: const Icon(Icons.add),
       ),
       body: Column(
@@ -113,7 +118,11 @@ class _EntityControlListState extends State<EntityControlList> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => widget.type == "Members"? _showPlayerEditorDialog(item) : _showEditorDialog(item),
+                        onPressed:
+                            () =>
+                                widget.type == "Members"
+                                    ? _showPlayerEditorDialog(item)
+                                    : _showEditorDialog(item),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
@@ -154,6 +163,7 @@ class _EntityControlListState extends State<EntityControlList> {
                     whereArgs: [id],
                   );
                   _refreshData();
+                  if (!ctx.mounted) return;
                   Navigator.pop(ctx);
                 },
                 child: const Text("Delete"),
@@ -199,6 +209,7 @@ class _EntityControlListState extends State<EntityControlList> {
                     );
                   }
                   _refreshData();
+                  if (!ctx.mounted) return;
                   Navigator.pop(ctx);
                 },
                 child: const Text("Save"),
@@ -217,7 +228,7 @@ class _EntityControlListState extends State<EntityControlList> {
     // 2. Track which team is selected (default to current team or first team available)
     int? selectedTeamId =
         player?['team_id'] ?? (teams.isNotEmpty ? teams[0]['id'] : null);
-
+    if (!mounted) return;
     showDialog(
       context: context,
       builder:
@@ -239,7 +250,7 @@ class _EntityControlListState extends State<EntityControlList> {
                       ),
                       const SizedBox(height: 20),
                       DropdownButtonFormField<int>(
-                        value: selectedTeamId,
+                        initialValue: selectedTeamId,
                         decoration: const InputDecoration(
                           labelText: "Assign to Team",
                           border: OutlineInputBorder(),
@@ -266,8 +277,9 @@ class _EntityControlListState extends State<EntityControlList> {
                     ElevatedButton(
                       onPressed: () async {
                         if (nameController.text.isEmpty ||
-                            selectedTeamId == null)
+                            selectedTeamId == null) {
                           return;
+                        }
 
                         final db = await _db.database;
                         final data = {
@@ -287,6 +299,7 @@ class _EntityControlListState extends State<EntityControlList> {
                         }
 
                         _refreshData(); // Refresh the list on the main screen
+                        if (!context.mounted) return;
                         Navigator.pop(ctx);
                       },
                       child: const Text("Save Changes"),

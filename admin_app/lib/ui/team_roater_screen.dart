@@ -62,7 +62,7 @@ class TeamRosterScreen extends StatelessWidget {
                     margin: const EdgeInsets.all(16),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.white10),
                     ),
@@ -169,6 +169,7 @@ class TeamRosterScreen extends StatelessWidget {
 
     // Call your existing dialog function here
     // showDialog(context: context, builder: (...) => ...)
+    if (!context.mounted) return;
     showDialog(
       context: context,
       builder:
@@ -257,8 +258,7 @@ class TeamRosterScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                      )
-                      .toList(),
+                      ),
                 ],
               ),
             ),

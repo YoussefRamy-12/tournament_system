@@ -10,10 +10,9 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final ApiClient _apiClient = ApiClient();
-  bool _isOnline = true;
-  bool _isReconnecting = false;
-  
-  late Future<List<Map<String, dynamic>>> _historyFuture ;
+
+  late Future<List<Map<String, dynamic>>> _historyFuture = _apiClient
+      .fetchMyHistory();
 
   void _refreshData() {
     setState(() {
@@ -21,17 +20,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Scoring Requests'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => setState(() {}), // Simple refresh
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshData),
         ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -70,7 +65,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ElevatedButton.icon(
                       onPressed: () async {
                         setState(() {
-                          _isReconnecting = true;
+                          // Trigger UI update if needed
                         });
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -82,14 +77,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         String? found = await _apiClient.findNewServerIP();
                         if (found != null) {
                           _refreshData();
+                          if (!context.mounted) return;
                           setState(() {
-                            _isReconnecting = false;
-                            _isOnline = true;
-                          });
-                        } else {
-                          setState(() {
-                            _isReconnecting = false;
-                            _isOnline = false;
+                            // Update UI state
                           });
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -97,7 +87,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               backgroundColor: Colors.red,
                             ),
                           );
-                        }},
+                        }
+                      },
                       icon: const Icon(Icons.refresh),
                       label: const Text("Try Again"),
                     ),
@@ -187,16 +178,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
             borderRadius: BorderRadius.circular(12),
-            color: color.withOpacity(0.02),
+            color: color.withValues(alpha: 0.02),
           ),
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: items.length,
             separatorBuilder: (context, index) =>
-                Divider(color: color.withOpacity(0.1), height: 1),
+                Divider(color: color.withValues(alpha: 0.1), height: 1),
             itemBuilder: (context, index) {
               final item = items[index];
               return ListTile(

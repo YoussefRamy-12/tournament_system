@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:leader_app/ui/scanner_screen.dart';
+
 import '../network/api_client.dart';
 import '../network/connection_manager.dart';
 
@@ -28,7 +28,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
   Future<void> _checkStatus() async {
     final leaderId = await _connection.getOrGenerateLeaderId();
     final status = await _apiClient.checkLeaderStatus(leaderId);
-    print( "Leader status: $status" );
+
     if (!mounted) return;
 
     if (status == 'APPROVED') {
@@ -39,7 +39,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
       _showRejectedDialog(); // This breaks the loop and shows the "Try Again" button
     } else if (status == 'ERROR' || status == 'CONNECTION_ERROR') {
       // Optional: Show a small toast or message that the server is unreachable
-      print("Waiting for server to recover...");
+      // print("Waiting for server to recover...");
     }
   }
 
@@ -52,7 +52,11 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
         content: const Text('Your registration was not approved by the Admin.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/scanner', (route) => false),
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/scanner',
+              (route) => false,
+            ),
             child: const Text('Return to Scan'),
           ),
         ],

@@ -17,7 +17,7 @@ void main() async {
   // 2. Check if we have a saved connection
   final connection = ConnectionManager();
   String? savedUrl = await connection.getUrl();
-  final String? leaderName = await connection.getLeaderName();
+
   final bool isRegistered = await connection.isRegistered();
   final apiClient = ApiClient();
   Widget initialScreen;
@@ -25,11 +25,11 @@ void main() async {
   if (savedUrl != null && isRegistered) {
     // 2. Ping the saved URL to see if it's still valid
     bool available = await apiClient.isServerAvailable();
-    
+
     if (!available) {
-      print("Saved IP is dead. Searching for new server IP...");
+      // print("Saved IP is dead. Searching for new server IP...");
       // 3. Search for the server ONCE during startup
-      await apiClient.findNewServerIP(); 
+      await apiClient.findNewServerIP();
     }
   }
 
@@ -40,9 +40,9 @@ void main() async {
   } else {
     initialScreen = const MyHomePage(title: "test"); // Your Home Screen
   }
-  print(
-    " Saved URL: $savedUrl, Leader Name: $leaderName , Registered: $isRegistered ",
-  );
+  // print(
+  //   " Saved URL: $savedUrl, Leader Name: $leaderName , Registered: $isRegistered ",
+  // );
 
   // runApp(const MyApp());
   runApp(
@@ -72,11 +72,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
     );
   }
 }
-
-

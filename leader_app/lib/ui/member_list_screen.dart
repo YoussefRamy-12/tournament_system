@@ -45,8 +45,6 @@ class MemberListScreen extends StatelessWidget {
                           ScoringFormScreen(member: members[index]),
                     ),
                   );
-
-                  print('Selected ${members[index].name}');
                 },
               );
             },

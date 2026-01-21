@@ -50,9 +50,9 @@ class ApiRouter {
         'timestamp': data['timestamp'],
       });
 
-      print(
-        '📥 Received Score for Member ID: ${data['targetId']} the leader ID: ${data['leaderId']}',
-      );
+      // print(
+      //   '📥 Received Score for Member ID: ${data['targetId']} the leader ID: ${data['leaderId']}',
+      // );
       return Response.ok(jsonEncode({'status': 'success'}));
     });
 
@@ -138,7 +138,7 @@ class ApiRouter {
           );
         }
       } catch (e) {
-        print("Server Error in check-approval: $e");
+        // print("Server Error in check-approval: $e");
         return Response.internalServerError();
       }
     });

@@ -24,7 +24,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
-  
   final _apiClient = ApiClient();
   Timer? _heartbeatTimer;
   int _failureCount = 0;
@@ -78,13 +77,13 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     } else {
       // FAILURE
       _failureCount++;
-      
+
       if (_isOnline) {
         setState(() {
           _isOnline = false;
           _isReconnecting = true;
         });
-        
+
         // Try to find the new IP only on the first few failures
         if (_failureCount <= 2) {
           _attemptReconnection();
@@ -166,6 +165,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 ),
               );
               String? found = await _apiClient.findNewServerIP();
+              if (!context.mounted) return;
               if (found != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -190,7 +190,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         ],
       ),
       body: Center(
-        child: Column(mainAxisAlignment: .center,
+        child: Column(
+          mainAxisAlignment: .center,
           children: [
             ListTile(
               leading: const Icon(Icons.rate_review),

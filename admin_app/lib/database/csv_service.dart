@@ -59,7 +59,5 @@ class CsvService {
 
     // 2. Insert the Member linked to that Team ID
     await db.insert('members', {'team_id': teamId, 'name': memberName});
-
-    print('✅ Synced: $memberName to Team: $teamName (ID: $teamId)');
   }
 }

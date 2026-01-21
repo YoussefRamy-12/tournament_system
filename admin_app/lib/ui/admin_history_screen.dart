@@ -101,7 +101,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
             borderRadius: BorderRadius.circular(12),
           ),
           child: ListView.separated(
@@ -110,7 +110,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
             itemCount: items.length,
             separatorBuilder:
                 (context, index) =>
-                    Divider(color: color.withOpacity(0.1), height: 1),
+                    Divider(color: color.withValues(alpha: 0.1), height: 1),
             itemBuilder: (context, index) {
               final item = items[index];
               return ListTile(
@@ -170,16 +170,19 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
               _buildStatusOption(context, item['id'], 'REJECTED', Colors.red),
               const SizedBox(height: 10),
               const Divider(),
-            // --- NEW DELETE OPTION ---
-            ListTile(
-              leading: const Icon(Icons.delete_forever, color: Colors.red),
-              title: const Text("Delete Permanently", style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context); // Close bottom sheet
-                _confirmDelete(context, item['id']); // Open confirmation
-              },
-            ),
-            const SizedBox(height: 10),
+              // --- NEW DELETE OPTION ---
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text(
+                  "Delete Permanently",
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context); // Close bottom sheet
+                  _confirmDelete(context, item['id']); // Open confirmation
+                },
+              ),
+              const SizedBox(height: 10),
             ],
           ),
         );
@@ -188,33 +191,41 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
   }
 
   void _confirmDelete(BuildContext context, String id) {
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text("Delete Transaction?"),
-      content: const Text("This action cannot be undone. The points will be removed from the leaderboard immediately."),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text("Cancel"),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          onPressed: () async {
-            await _dbHelper.deleteTransaction(id);
-            Navigator.pop(ctx);
-            setState(() {}); // Refresh the history list
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Transaction deleted")),
-            );
-          },
-          child: const Text("Delete", style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    ),
-  );
-}
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Delete Transaction?"),
+            content: const Text(
+              "This action cannot be undone. The points will be removed from the leaderboard immediately.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () async {
+                  await _dbHelper.deleteTransaction(id);
+                  if (!ctx.mounted) return;
+                  Navigator.pop(ctx);
+                  setState(() {}); // Refresh the history list
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Transaction deleted")),
+                  );
+                },
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
 
   Widget _buildStatusOption(
     BuildContext context,
@@ -227,6 +238,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
       title: Text("Mark as $status"),
       onTap: () async {
         await _dbHelper.updateTransactionStatus(id, status);
+        if (!context.mounted) return;
         Navigator.pop(context); // Close sheet
         setState(
           () {},
