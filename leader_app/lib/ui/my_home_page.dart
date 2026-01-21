@@ -24,7 +24,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
-  int _counter = 0;
+  
   final _apiClient = ApiClient();
   Timer? _heartbeatTimer;
   int _failureCount = 0;
@@ -127,47 +127,11 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     }
   }
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    // Row(
-    //   children: [
-    //     Container(
-    //       width: 10,
-    //       height: 10,
-    //       decoration: BoxDecoration(
-    //         color: _isConnected ? Colors.green : Colors.red,
-    //         shape: BoxShape.circle,
-    //       ),
-    //     ),
-    //     const SizedBox(width: 5),
-    //     Text(_isConnected ? "Online" : "Offline"),
-    //   ],
-    // );
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Row(
           children: [
             Text(widget.title),
@@ -226,46 +190,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         ],
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          // ListTile(
-          //     leading: const Icon(Icons.rate_review),
-          //     title: const Text('Review Scores'),
-          //     onTap:
-          //         () => Navigator.push(
-          //           context,
-          //           MaterialPageRoute(
-          //             builder: (context) => const ReviewScreen(),
-          //           ),
-          //         ),
-          //   ),
-
-          // ListTile(
-          //   leading: const Icon(Icons.rate_review),
-          //   title: const Text('setup screen'),
-          //   onTap:
-          //       () => Navigator.push(
-          //         context,
-          //         MaterialPageRoute(
-          //           // builder: (context) => (),
-          //         ),
-          //       ),
-          // ),
-          mainAxisAlignment: .center,
+        child: Column(mainAxisAlignment: .center,
           children: [
             ListTile(
               leading: const Icon(Icons.rate_review),
@@ -283,18 +208,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 MaterialPageRoute(builder: (context) => HistoryScreen()),
               ),
             ),
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }

@@ -10,6 +10,17 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final ApiClient _apiClient = ApiClient();
+  bool _isOnline = true;
+  bool _isReconnecting = false;
+  
+  late Future<List<Map<String, dynamic>>> _historyFuture ;
+
+  void _refreshData() {
+    setState(() {
+      _historyFuture = _apiClient.fetchMyHistory();
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -20,18 +31,80 @@ class _HistoryScreenState extends State<HistoryScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(() {}), // Simple refresh
-          )
+          ),
         ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _apiClient.fetchMyHistory(), // The new filtered function
+        future: _historyFuture, // The new filtered function
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
-            return Center(child: Text('Connection Error: ${snapshot.error}'));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.redAccent,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Oops! Something went wrong",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "We couldn't load the history right now. Please try again.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        setState(() {
+                          _isReconnecting = true;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Re-scanning network for Admin laptop...",
+                            ),
+                          ),
+                        );
+                        String? found = await _apiClient.findNewServerIP();
+                        if (found != null) {
+                          _refreshData();
+                          setState(() {
+                            _isReconnecting = false;
+                            _isOnline = true;
+                          });
+                        } else {
+                          setState(() {
+                            _isReconnecting = false;
+                            _isOnline = false;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Laptop not found. Check Wi-Fi."),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }},
+                      icon: const Icon(Icons.refresh),
+                      label: const Text("Try Again"),
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
 
           final allRequests = snapshot.data ?? [];
@@ -43,20 +116,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
           }
 
           // Filter data into groups
-          final approved = allRequests.where((i) => i['status'] == 'APPROVED').toList();
-          final rejected = allRequests.where((i) => i['status'] == 'REJECTED').toList();
-          final pending = allRequests.where((i) => i['status'] == 'PENDING').toList();
+          final approved = allRequests
+              .where((i) => i['status'] == 'APPROVED')
+              .toList();
+          final rejected = allRequests
+              .where((i) => i['status'] == 'REJECTED')
+              .toList();
+          final pending = allRequests
+              .where((i) => i['status'] == 'PENDING')
+              .toList();
 
           return ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
-              if (pending.isNotEmpty) _buildStatusSection('PENDING REQUESTS', Colors.orange, pending, Icons.hourglass_empty),
+              if (pending.isNotEmpty)
+                _buildStatusSection(
+                  'PENDING REQUESTS',
+                  Colors.orange,
+                  pending,
+                  Icons.hourglass_empty,
+                ),
               if (pending.isNotEmpty) const SizedBox(height: 24),
-              
-              if (approved.isNotEmpty) _buildStatusSection('APPROVED', Colors.green, approved, Icons.check_circle),
+
+              if (approved.isNotEmpty)
+                _buildStatusSection(
+                  'APPROVED',
+                  Colors.green,
+                  approved,
+                  Icons.check_circle,
+                ),
               if (approved.isNotEmpty) const SizedBox(height: 24),
-              
-              if (rejected.isNotEmpty) _buildStatusSection('REJECTED', Colors.red, rejected, Icons.cancel),
+
+              if (rejected.isNotEmpty)
+                _buildStatusSection(
+                  'REJECTED',
+                  Colors.red,
+                  rejected,
+                  Icons.cancel,
+                ),
             ],
           );
         },
@@ -64,7 +161,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildStatusSection(String status, Color color, List<Map<String, dynamic>> items, IconData icon) {
+  Widget _buildStatusSection(
+    String status,
+    Color color,
+    List<Map<String, dynamic>> items,
+    IconData icon,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -74,7 +176,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(width: 8),
             Text(
               status,
-              style: TextStyle(color: color, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
             ),
           ],
         ),
@@ -89,14 +195,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: items.length,
-            separatorBuilder: (context, index) => Divider(color: color.withOpacity(0.1), height: 1),
+            separatorBuilder: (context, index) =>
+                Divider(color: color.withOpacity(0.1), height: 1),
             itemBuilder: (context, index) {
               final item = items[index];
               return ListTile(
-                title: Text(item['memberName'] ?? 'Unknown Member', style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('${item['tag']} • ${item['points'] > 0 ? "+" : ""}${item['points']} pts'),
+                title: Text(
+                  item['memberName'] ?? 'Unknown Member',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  '${item['tag']} • ${item['points'] > 0 ? "+" : ""}${item['points']} pts',
+                ),
                 trailing: Text(
-                  item['timestamp'].toString().substring(11, 16), // Shows "HH:mm"
+                  item['timestamp'].toString().substring(
+                    11,
+                    16,
+                  ), // Shows "HH:mm"
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               );
