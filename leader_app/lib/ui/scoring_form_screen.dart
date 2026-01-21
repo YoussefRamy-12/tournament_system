@@ -32,94 +32,113 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Score ${widget.member.name}')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Points Display
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Points to Award',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    Text(
-                      '$_points',
-                      style: const TextStyle(
-                        fontSize: 64,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+      body: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Points Display
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Points to Award',
+                        style: TextStyle(fontSize: 16),
                       ),
-                    ),
-                  ],
+                      Text(
+                        '$_points',
+                        style: const TextStyle(
+                          fontSize: 64,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // Points Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _pointButton(
-                  -1,
-                  Colors.red,
-                ), // Added a minus button for mistakes
-                _pointButton(1, Colors.green),
-                _pointButton(5, Colors.green),
-                _pointButton(10, Colors.green),
-              ],
-            ),
-            const SizedBox(height: 32),
-            // Tag Dropdown
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: "Reason / Tag",
+              const SizedBox(height: 24),
+              // Points Buttons
+              Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _pointButton(
+                        -1,
+                        Colors.red,
+                      ), // Added a minus button for mistakes
+                      _pointButton(
+                        -5,
+                        Colors.red,
+                      ), // Added a minus button for mistakes
+                      _pointButton(-10, Colors.red),
+                    ],
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Added a minus button for mistakes
+                      _pointButton(1, Colors.green),
+                      _pointButton(5, Colors.green),
+                      _pointButton(10, Colors.green),
+                    ],
+                  ),
+                ],
               ),
-              hint: const Text('Select a tag'),
-              initialValue: _selectedTag,
-              items: TournamentConstants.scoreTags.map((tag) {
-                return DropdownMenuItem(value: tag, child: Text(tag));
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedTag = value),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Description (Optional)',
-                hintText: 'Add any additional details...',
-              ),
-              maxLines: 3,
-              // onChanged: (value) => setState(() => _description = value),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+              const SizedBox(height: 32),
+              // Tag Dropdown
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Reason / Tag",
                 ),
-                onPressed:
-                    (_points != 0 && _selectedTag != null && !_isSubmitting)
-                    ? _submitScore
-                    : null,
-                child: _isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Submit Score',
-                        style: TextStyle(fontSize: 18),
-                      ),
+                hint: const Text('Select a tag'),
+                initialValue: _selectedTag,
+                items: TournamentConstants.scoreTags.map((tag) {
+                  return DropdownMenuItem(value: tag, child: Text(tag));
+                }).toList(),
+                onChanged: (value) => setState(() => _selectedTag = value),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Description (Optional)',
+                  hintText: 'Add any additional details...',
+                ),
+                maxLines: 3,
+                // onChanged: (value) => setState(() => _description = value),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed:
+                      (_points != 0 && _selectedTag != null && !_isSubmitting)
+                      ? _submitScore
+                      : null,
+                  child: _isSubmitting
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Submit Score',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -127,10 +146,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
 
   Widget _pointButton(int value, Color color) {
     return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.1),
-        foregroundColor: color,
-      ),
+      style: ElevatedButton.styleFrom(foregroundColor: color),
       onPressed: () => setState(() => _points += value),
       child: Text(value > 0 ? '+$value' : '$value'),
     );
@@ -141,7 +157,25 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     final leaderId = await conn.getOrGenerateLeaderId();
 
     // 1. Ask the server: "Am I still allowed to do this?"
-    final status = await _apiClient.checkLeaderStatus(leaderId);
+    String status = 'UNKNOWN';
+    try {
+      status = await _apiClient
+          .checkLeaderStatus(leaderId)
+          .timeout(const Duration(seconds: 3));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Connection lost! Please ensure you are connected to the Admin Laptop.",
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isSubmitting = false);
+      }
+      return;
+    }
 
     if (status != 'APPROVED') {
       // 2. If rejected or blocked, kick them back to the waiting screen
