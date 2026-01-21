@@ -54,7 +54,7 @@ class _EntityControlListState extends State<EntityControlList> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showEditorDialog(null), // Null means "Add New"
+        onPressed: () => widget.type == "Members" ? _showPlayerEditorDialog(null) : _showEditorDialog(null), // Null means "Add New"
         child: const Icon(Icons.add),
       ),
       body: Column(

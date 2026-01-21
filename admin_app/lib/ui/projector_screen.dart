@@ -15,7 +15,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
   Timer? _refreshTimer;
   List<Map<String, dynamic>> _teams = [];
   List<Map<String, dynamic>> _top10Players = [];
-  List<Map<String, dynamic>> _allPlayers = [];
+  // List<Map<String, dynamic>> _allPlayers = [];
 
   @override
   void initState() {
@@ -199,8 +199,11 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
             ),
             trailing: Text(
               "${team['totalScore'] ?? 0}",
-              style: const TextStyle(
-                color: Colors.greenAccent,
+              style: TextStyle(
+                color:
+                    team['totalScore'] < 0
+                        ? Colors.redAccent
+                        : Colors.greenAccent,
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
@@ -242,7 +245,10 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
             "#${index + 1}",
             style: TextStyle(
               fontSize: 28,
-              color: index < 3 ? Colors.amber : const Color.fromARGB(208, 211, 211, 211),
+              color:
+                  index < 3
+                      ? Colors.amber
+                      : const Color.fromARGB(208, 211, 211, 211),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -256,8 +262,11 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
           ),
           trailing: Text(
             "${player['totalScore'] ?? 0}",
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color:
+                  player['totalScore'] < 0
+                      ? Colors.redAccent
+                      : Colors.greenAccent,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -368,6 +377,12 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
     final playerHistory =
         allTransactions.where((t) => t['target_id'] == player['id']).toList();
 
+    final approved =
+        playerHistory.where((t) => t['status'] == 'APPROVED').toList();
+    final rejected =
+        playerHistory.where((t) => t['status'] == 'REJECTED').toList();
+    final pending =
+        playerHistory.where((t) => t['status'] == 'PENDING').toList();
     showDialog(
       context: context,
       builder:
@@ -401,8 +416,11 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
                   ),
                   Text(
                     "${player['totalScore'] ?? 0} pts",
-                    style:  TextStyle(
-                      color: player['totalScore'] >= 0? Colors.greenAccent : Colors.redAccent,
+                    style: TextStyle(
+                      color:
+                          player['totalScore'] >= 0
+                              ? Colors.greenAccent
+                              : Colors.redAccent,
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
                     ),
@@ -419,42 +437,39 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
                   const SizedBox(height: 10),
 
                   // Show recent history using your existing transaction data
-                  ...playerHistory
-                      .take(5)
-                      .map(
-                        (t) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
-                            children: [
-                              Text(
-                                "${t['points']}",
-                                style: TextStyle(
-                                  color:
-                                      t['points'] < 0
-                                          ? Colors.redAccent
-                                          : Colors.greenAccent,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  "${t['tag'] ?? 'Points'}",
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ),
-                              Text(
-                                "${t['timestamp']?.toString().split(' ')[0]}",
-                                style: const TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+                  // 1. Remove the .map() and .toList() entirely.
+                  // 2. Just use one Expanded containing one ListView.
+                  Expanded(
+                    child: ListView(
+                      // Use a main ListView to make the whole thing scrollable
+                      children: [
+                        if (pending.isNotEmpty)
+                          _buildGroupSection("Pending", pending, Colors.orange),
+                        if (approved.isNotEmpty)
+                          _buildGroupSection(
+                            "Approved",
+                            approved,
+                            Colors.greenAccent,
                           ),
-                        ),
-                      )
-                      .toList(),
+                        if (rejected.isNotEmpty)
+                          _buildGroupSection(
+                            "Rejected",
+                            rejected,
+                            Colors.redAccent,
+                          ),
+                        if (playerHistory.isEmpty)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text(
+                                "No history found",
+                                style: TextStyle(color: Colors.white24),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -468,6 +483,74 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
               ),
             ],
           ),
+    );
+  }
+
+  Widget _buildGroupSection(
+    String title,
+    List<Map<String, dynamic>> items,
+    Color color,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        // We use a Column here instead of a ListView.builder because
+        // the parent is already a scrollable ListView.
+        ...items
+            .map(
+              (t) => Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 50,
+                      child: Text(
+                        "${t['points']}",
+                        style: TextStyle(
+                          color:
+                              (t['points'] ?? 0) < 0
+                                  ? Colors.redAccent
+                                  : Colors.greenAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "${t['tag'] ?? 'Points'}",
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      "${t['timestamp']?.toString().split(' ')[0]}",
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+        const Divider(color: Colors.white10),
+      ],
     );
   }
 }
