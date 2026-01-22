@@ -1,7 +1,11 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import '../database/db_helper.dart';
+import 'package:shelf_web_socket/shelf_web_socket.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:admin_app/database/db_helper.dart';
+import 'package:admin_app/server/online_leader_tracker.dart';
+import 'package:admin_app/server/dashboard_notifier.dart';
 
 class ApiRouter {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -34,6 +38,7 @@ class ApiRouter {
     });
 
     router.post('/submit-score', (Request request) async {
+      print('📥 ApiRouter: Received /submit-score request');
       final payload = await request.readAsString();
       final data = jsonDecode(payload);
 
@@ -50,9 +55,9 @@ class ApiRouter {
         'timestamp': data['timestamp'],
       });
 
-      // print(
-      //   '📥 Received Score for Member ID: ${data['targetId']} the leader ID: ${data['leaderId']}',
-      // );
+      // Notify dashboard of new pending transaction
+      DashboardNotifier.instance.notifyDashboardUpdate();
+
       return Response.ok(jsonEncode({'status': 'success'}));
     });
 
@@ -107,6 +112,8 @@ class ApiRouter {
         });
       }
 
+      DashboardNotifier.instance.notifyDashboardUpdate();
+
       return Response.ok('Registered');
     });
 
@@ -144,9 +151,49 @@ class ApiRouter {
     });
 
     router.get('/ping', (Request request) {
+      // final leaderId = request.url.queryParameters['leaderId'];
+      // if (leaderId != null && leaderId.isNotEmpty) {
+      //   OnlineLeaderTracker.instance.recordPing(leaderId);
+      // }
       return Response.ok('pong');
     });
+    router.get(
+      '/ws',
+      webSocketHandler((WebSocketChannel webSocket) {
+        String? currentLeaderId;
+        print('🌐 WS: New connection attempt');
 
+        webSocket.stream.listen(
+          (message) {
+            if (currentLeaderId == null && message is String) {
+              // First message is the leaderId
+              currentLeaderId = message;
+              OnlineLeaderTracker.instance.addConnection(
+                currentLeaderId!,
+                webSocket.sink,
+              );
+              print('📱 Leader connected: $currentLeaderId');
+            } else {
+              print('📨 Message from $currentLeaderId: $message');
+            }
+          },
+          onDone: () {
+            if (currentLeaderId != null) {
+              print('📱 Leader disconnected: $currentLeaderId');
+              OnlineLeaderTracker.instance.removeConnection(currentLeaderId!);
+            } else {
+              print('🌐 WS: Connection closed before leaderId was sent');
+            }
+          },
+          onError: (error) {
+            print('📱 Error with $currentLeaderId: $error');
+            if (currentLeaderId != null) {
+              OnlineLeaderTracker.instance.removeConnection(currentLeaderId!);
+            }
+          },
+        );
+      }),
+    );
     return router;
   }
 }

@@ -20,6 +20,7 @@ void main() async {
 
   final bool isRegistered = await connection.isRegistered();
   final apiClient = ApiClient();
+  if (savedUrl != null) apiClient.connectWebSocket(); // Start heartbeat
   Widget initialScreen;
 
   if (savedUrl != null && isRegistered) {

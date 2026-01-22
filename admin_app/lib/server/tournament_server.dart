@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf/shelf.dart';
-import 'api_router.dart';
+import 'package:admin_app/server/api_router.dart';
 
 class TournamentServer {
   HttpServer? _server;

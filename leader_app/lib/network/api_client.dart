@@ -1,10 +1,98 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'connection_manager.dart';
 import 'package:shared_models/models.dart';
 
 class ApiClient {
+  // Singleton Pattern
+  static final ApiClient _instance = ApiClient._internal();
+  factory ApiClient() => _instance;
+  ApiClient._internal();
+
   final ConnectionManager _connection = ConnectionManager();
+  WebSocketChannel? _channel;
+  bool _isConnected = false;
+
+  void connectWebSocket() async {
+    if (_isConnected) return;
+
+    final baseUrl = await _connection.getUrl();
+    final leaderId = await _connection.getOrGenerateLeaderId();
+
+    if (baseUrl == null || leaderId == null) {
+      print("⚠️ WS: Cannot connect, baseUrl or leaderId is null");
+      return;
+    }
+
+    // Convert http://ip:port to ws://ip:port/ws
+    // Ensure we don't end up with double slashes
+    String cleanBase = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    final wsUrl = cleanBase.replaceFirst('http', 'ws') + '/ws';
+
+    try {
+      print("🔌 WS: Connecting to $wsUrl...");
+      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+
+      _channel!.stream.listen(
+        (message) {
+          // print("WS Message: $message");
+        },
+        onDone: () {
+          print("🔌 WS: Connection closed");
+          _isConnected = false;
+          _stopHeartbeat();
+          _reconnect();
+        },
+        onError: (error) {
+          print("🔌 WS: Connection error: $error");
+          _isConnected = false;
+          _stopHeartbeat();
+          _reconnect();
+        },
+      );
+
+      // Send leaderId as first message
+      _channel!.sink.add(leaderId);
+      _isConnected = true;
+      print("🔌 WS: Connected and sent leaderId: $leaderId");
+
+      // Start a heartbeat to keep connection alive
+      _startHeartbeat();
+    } catch (e) {
+      print("🔌 WS: Connection failed: $e");
+      _isConnected = false;
+      _reconnect();
+    }
+  }
+
+  Timer? _heartbeatTimer;
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (_isConnected && _channel != null) {
+        _channel!.sink.add("ping");
+      }
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+
+  void _reconnect() {
+    Future.delayed(const Duration(seconds: 5), () {
+      if (!_isConnected) {
+        connectWebSocket();
+      }
+    });
+  }
+
+  // Fetch all teams from the Admin Laptop
 
   // Fetch all teams from the Admin Laptop
   Future<List<Team>> fetchTeams() async {
@@ -99,8 +187,9 @@ class ApiClient {
       final baseUrl = await _connection.getUrl();
       if (baseUrl == null) return false;
 
+      final leaderId = await _connection.getOrGenerateLeaderId();
       final response = await http
-          .get(Uri.parse('$baseUrl/ping'))
+          .get(Uri.parse('$baseUrl/ping?leaderId=$leaderId'))
           .timeout(const Duration(seconds: 2));
 
       return response.statusCode == 200 && response.body == 'pong';

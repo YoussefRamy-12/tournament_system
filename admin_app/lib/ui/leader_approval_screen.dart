@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../database/db_helper.dart';
+import 'package:admin_app/database/db_helper.dart';
+import 'package:admin_app/server/online_leader_tracker.dart';
 
 class LeaderApprovalScreen extends StatefulWidget {
   const LeaderApprovalScreen({super.key});
@@ -130,13 +131,77 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen> {
               final String currentStatus = leader['status'];
 
               return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: color.withValues(alpha: 0.2),
-                  child: Icon(Icons.person, color: color),
+                leading: StreamBuilder<void>(
+                  stream: OnlineLeaderTracker.instance.onStatusChange,
+                  builder: (context, _) {
+                    bool isOnline = OnlineLeaderTracker.instance.onlineLeaderIds
+                        .contains(leader['id']);
+
+                    return Stack(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: color.withValues(alpha: 0.2),
+                          child: Icon(Icons.person, color: color),
+                        ),
+                        if (currentStatus == 'APPROVED')
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: isOnline ? Colors.green : Colors.grey,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
-                title: Text(
-                  leader['name'] ?? 'Unknown Name',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                title: StreamBuilder<void>(
+                  stream: OnlineLeaderTracker.instance.onStatusChange,
+                  builder: (context, _) {
+                    bool isOnline = OnlineLeaderTracker.instance.onlineLeaderIds
+                        .contains(leader['id']);
+
+                    return Row(
+                      children: [
+                        Text(
+                          leader['name'] ?? 'Unknown Name',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        if (isOnline && currentStatus == 'APPROVED')
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.green.withOpacity(0.5),
+                              ),
+                            ),
+                            child: const Text(
+                              "ONLINE",
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
                 subtitle: Text(
                   'ID: ${leader['id'].toString().substring(0, 8)}...',

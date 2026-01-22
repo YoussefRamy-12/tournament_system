@@ -1,62 +1,7 @@
-// import 'dart:io';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-// import 'package:path/path.dart';
-
-// class DbHelper {
-//   static Database? _database;
-
-//   static Future<void> initializeSqfliteFfi() async {
-//     sqfliteFfiInit();
-//     databaseFactory = databaseFactoryFfi;
-//   }
-
-//   static Future<Database> getDatabase() async {
-//     _database ??= await _initDatabase();
-//     return _database!;
-//   }
-
-//   static Future<Database> _initDatabase() async {
-//     final dbPath = await getDatabasesPath();
-//     final path = '$dbPath/tournament.db';
-
-//     return await openDatabase(path, version: 1, onCreate: _createTables);
-//   }
-
-//   static Future<void> _createTables(Database db, int version) async {
-//     await db.execute('''
-//       CREATE TABLE users (
-//         id INTEGER PRIMARY KEY AUTOINCREMENT,
-//         name TEXT NOT NULL,
-//         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-//       )
-//     ''');
-
-//     await db.execute('''
-//       CREATE TABLE teams (
-//         id INTEGER PRIMARY KEY AUTOINCREMENT,
-//         tournament_id INTEGER NOT NULL,
-//         name TEXT NOT NULL,
-//         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-//         FOREIGN KEY (tournament_id) REFERENCES tournaments(id)
-//       )
-//     ''');
-
-//     // Create Transactions Table
-//     await db.execute('''
-//             CREATE TABLE transactions (
-//               id TEXT PRIMARY KEY,
-//               target_id INTEGER,
-//               points INTEGER,
-//               tag TEXT,
-//               status TEXT,
-//               timestamp TEXT
-//             )
-//           ''');
-//   }
-// }
-// import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
+import 'package:admin_app/server/online_leader_tracker.dart';
+import 'package:admin_app/server/dashboard_notifier.dart';
 
 class DatabaseHelper {
   static Database? _db;
@@ -166,6 +111,7 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+    DashboardNotifier.instance.notifyDashboardUpdate();
   }
 
   Future<List<Map<String, dynamic>>> getLeaderboardData() async {
@@ -192,6 +138,7 @@ class DatabaseHelper {
       where: 'status = ?',
       whereArgs: ['PENDING'],
     );
+    DashboardNotifier.instance.notifyDashboardUpdate();
   }
 
   // Fetch all leaders waiting for approval
@@ -218,6 +165,7 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+    DashboardNotifier.instance.notifyDashboardUpdate();
   }
 
   // Delete a team and its associated members and transactions
@@ -227,6 +175,7 @@ class DatabaseHelper {
       await txn.delete('members', where: 'team_id = ?', whereArgs: [teamId]);
       await txn.delete('teams', where: 'id = ?', whereArgs: [teamId]);
     });
+    DashboardNotifier.instance.notifyDashboardUpdate();
   }
 
   // Delete a member and their transactions
@@ -240,12 +189,14 @@ class DatabaseHelper {
       );
       await txn.delete('members', where: 'id = ?', whereArgs: [memberId]);
     });
+    DashboardNotifier.instance.notifyDashboardUpdate();
   }
 
   // Delete a leader
   Future<void> deleteLeader(String leaderId) async {
     final db = await database;
     await db.delete('leaders', where: 'id = ?', whereArgs: [leaderId]);
+    DashboardNotifier.instance.notifyDashboardUpdate();
   }
 
   // Delete a transaction
@@ -256,6 +207,7 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [transactionId],
     );
+    DashboardNotifier.instance.notifyDashboardUpdate();
   }
 
   // Gets team totals for the leaderboard
@@ -345,5 +297,33 @@ class DatabaseHelper {
     );
   }
 
-  
+  Future<Map<String, dynamic>> getAdminDashboardStats() async {
+    final db = await database;
+
+    // 1. Pending Transactions
+    final txCount = (await db.rawQuery(
+      '''SELECT COUNT(*) as total FROM Transactions WHERE status = 'PENDING' ''',
+    ));
+    final pendingTransactionsCount = (txCount.first['total'] as int?) ?? 0;
+
+    // 2. Pending Leader Approvals (Assuming a 'status' column in Leaders table)
+    final leaderCount = (await db.rawQuery(
+      "SELECT COUNT(*) as total FROM Leaders WHERE status = 'PENDING'",
+    ));
+    final pendingLeaderCount = (leaderCount.first['total'] as int?) ?? 0;
+    // 3. Total Members/Teams
+    final memberResult = await db.rawQuery(
+      "SELECT COUNT(*) AS total FROM Members",
+    );
+    final totalMemberCount = memberResult.first['total'] as int;
+    // 4. Online Leaders
+    final onlineCount = OnlineLeaderTracker.instance.onlineCount;
+
+    return {
+      'pendingTx': pendingTransactionsCount,
+      'pendingLeaders': pendingLeaderCount,
+      'totalMembers': totalMemberCount,
+      'onlineLeaders': onlineCount,
+    };
+  }
 }
