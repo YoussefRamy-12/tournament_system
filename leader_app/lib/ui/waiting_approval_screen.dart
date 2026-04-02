@@ -19,7 +19,10 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
   @override
   void initState() {
     super.initState();
-    // Start checking every 5 seconds
+    // 1. Ensure we are connected to WebSocket so we show as "Online"
+    _apiClient.connectWebSocket();
+
+    // 2. Start checking every 5 seconds
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _checkStatus();
     });

@@ -7,6 +7,7 @@ import 'package:admin_app/ui/review_screen.dart';
 import 'package:admin_app/ui/setup_screen.dart';
 
 import 'package:admin_app/ui/admin_history_screen.dart';
+import 'package:admin_app/ui/all_players_screen.dart';
 import 'package:admin_app/ui/connection_screen.dart';
 import 'package:admin_app/ui/full_control_screen.dart';
 import 'package:admin_app/ui/leader_approval_screen.dart';
@@ -67,6 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     'pendingTx': 0,
                     'onlineLeaders': 0,
                     'pendingLeaders': 0,
+                    'approvedLeaders': 0,
                     'totalMembers': 0,
                   };
 
@@ -172,10 +174,18 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(width: 12),
             _buildStatItem(
-              "New Leaders",
-              stats['pendingLeaders'].toString(),
-              Icons.person_add_alt_1,
-              Colors.redAccent,
+              "Approved Leaders",
+              stats['approvedLeaders'].toString(),
+              Icons.verified_user,
+              Colors.green,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LeaderApprovalScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -184,15 +194,15 @@ class _MyHomePageState extends State<MyHomePage> {
         Row(
           children: [
             _buildStatItem(
-              "Online Leaders",
-              stats['onlineLeaders'].toString(),
-              Icons.sensors,
-              Colors.green,
+              "Pending Approvals",
+              stats['pendingLeaders'].toString(),
+              Icons.person_add_alt_1,
+              Colors.orange,
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => LeaderApprovalScreen(),
+                    builder: (context) => const LeaderApprovalScreen(),
                   ),
                 );
               },
@@ -203,6 +213,12 @@ class _MyHomePageState extends State<MyHomePage> {
               stats['totalMembers'].toString(),
               Icons.groups,
               Colors.blue,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AllPlayersScreen()),
+                );
+              },
             ),
           ],
         ),

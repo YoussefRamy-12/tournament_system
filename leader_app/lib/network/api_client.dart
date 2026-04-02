@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'connection_manager.dart';
@@ -13,15 +14,19 @@ class ApiClient {
 
   final ConnectionManager _connection = ConnectionManager();
   WebSocketChannel? _channel;
-  bool _isConnected = false;
+  
+  // Single source of truth for UI to listen to
+  final ValueNotifier<bool> isOnline = ValueNotifier<bool>(false);
+  bool _isConnecting = false;
 
   void connectWebSocket() async {
-    if (_isConnected) return;
+    if (isOnline.value || _isConnecting) return;
+    _isConnecting = true;
 
     final baseUrl = await _connection.getUrl();
     final leaderId = await _connection.getOrGenerateLeaderId();
 
-    if (baseUrl == null || leaderId == null) {
+    if (baseUrl == null) {
       print("⚠️ WS: Cannot connect, baseUrl or leaderId is null");
       return;
     }
@@ -31,25 +36,32 @@ class ApiClient {
     String cleanBase = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
         : baseUrl;
-    final wsUrl = cleanBase.replaceFirst('http', 'ws') + '/ws';
+    final wsUrl = '${cleanBase.replaceFirst('http', 'ws')}/ws';
 
     try {
       print("🔌 WS: Connecting to $wsUrl...");
+      // Add a timeout to the connection attempt
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-
+      
+      // Wait for a second or first message to confirm connection?
+      // Actually, we'll assume connected once the stream is open
+      
       _channel!.stream.listen(
         (message) {
           // print("WS Message: $message");
+          if (!isOnline.value) isOnline.value = true;
         },
         onDone: () {
           print("🔌 WS: Connection closed");
-          _isConnected = false;
+          isOnline.value = false;
+          _isConnecting = false;
           _stopHeartbeat();
           _reconnect();
         },
         onError: (error) {
           print("🔌 WS: Connection error: $error");
-          _isConnected = false;
+          isOnline.value = false;
+          _isConnecting = false;
           _stopHeartbeat();
           _reconnect();
         },
@@ -57,14 +69,16 @@ class ApiClient {
 
       // Send leaderId as first message
       _channel!.sink.add(leaderId);
-      _isConnected = true;
+      isOnline.value = true;
+      _isConnecting = false;
       print("🔌 WS: Connected and sent leaderId: $leaderId");
 
       // Start a heartbeat to keep connection alive
       _startHeartbeat();
     } catch (e) {
       print("🔌 WS: Connection failed: $e");
-      _isConnected = false;
+      isOnline.value = false;
+      _isConnecting = false;
       _reconnect();
     }
   }
@@ -72,9 +86,16 @@ class ApiClient {
   Timer? _heartbeatTimer;
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (_isConnected && _channel != null) {
-        _channel!.sink.add("ping");
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (isOnline.value && _channel != null) {
+        try {
+          _channel!.sink.add("ping");
+        } catch (e) {
+          print("🔌 WS: Heartbeat failed, closing: $e");
+          isOnline.value = false;
+          _stopHeartbeat();
+          _reconnect();
+        }
       }
     });
   }
@@ -86,7 +107,7 @@ class ApiClient {
 
   void _reconnect() {
     Future.delayed(const Duration(seconds: 5), () {
-      if (!_isConnected) {
+      if (!isOnline.value) {
         connectWebSocket();
       }
     });

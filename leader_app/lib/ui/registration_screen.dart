@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:leader_app/network/api_client.dart';
 import 'package:leader_app/network/connection_manager.dart';
 
 class RegistrationScreen extends StatefulWidget {
@@ -14,6 +15,13 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _nameController = TextEditingController();
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure we are connected to WebSocket so we show as "Online" to the admin
+    ApiClient().connectWebSocket();
+  }
   
 void _register() async {
     // 1. Validation: Don't submit if name is empty

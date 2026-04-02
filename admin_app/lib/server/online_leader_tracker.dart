@@ -10,6 +10,9 @@ class OnlineLeaderTracker {
 
   // Map of LeaderID -> WebSocket Connection
   final Map<String, WebSocketSink> _connections = {};
+  // Map of Sink -> Last Seen Time
+  final Map<WebSocketSink, DateTime> _lastSeen = {};
+  Timer? _cleanupTimer;
 
   // Stream to notify UI of updates
   final _statusController = StreamController<void>.broadcast();
@@ -17,7 +20,18 @@ class OnlineLeaderTracker {
 
   void addConnection(String leaderId, WebSocketSink sink) {
     _connections[leaderId] = sink;
+    _lastSeen[sink] = DateTime.now();
+    _startCleanupTimer();
     _notify();
+  }
+
+  void recordPing(WebSocketSink sink) {
+    if (_lastSeen.containsKey(sink)) {
+      _lastSeen[sink] = DateTime.now();
+      // print('💓 OnlineLeaderTracker: Received heartbeat'); 
+    } else {
+      // print('⚠️ OnlineLeaderTracker: Received ping for unknown sink');
+    }
   }
 
   void removeConnection(String leaderId) {
@@ -38,10 +52,37 @@ class OnlineLeaderTracker {
     }
 
     _connections.remove(entry.key);
+    _lastSeen.remove(sink);
     _notify();
   }
 
+  void _startCleanupTimer() {
+    _cleanupTimer ??= Timer.periodic(const Duration(seconds: 8), (timer) {
+      final now = DateTime.now();
+      final staleSinks =
+          _lastSeen.entries
+              .where(
+                (e) => now.difference(e.value).inSeconds > 30,
+              ) // 30s timeout is safer than 12s
+              .map((e) => e.key)
+              .toList();
+
+      if (staleSinks.isNotEmpty) {
+        print('🧹 Cleaning up ${staleSinks.length} stale connections');
+        for (var sink in staleSinks) {
+          removeConnectionBySink(sink);
+          try {
+            sink.close();
+          } catch (_) {}
+        }
+      }
+    });
+  }
+
   void _notify() {
+    print(
+      '🔄 OnlineLeaderTracker: Notifying listeners (Total Online: $onlineCount)',
+    );
     _statusController.add(null);
     DashboardNotifier.instance.notifyDashboardUpdate();
   }

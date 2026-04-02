@@ -245,6 +245,22 @@ class DatabaseHelper {
   ''');
   }
 
+  Future<List<Map<String, dynamic>>> getAllPlayersWithScores() async {
+    final db = await database;
+    return await db.rawQuery('''
+    SELECT 
+      Members.id, 
+      Members.name, 
+      Teams.name AS teamName, 
+      IFNULL(SUM(Transactions.points), 0) as totalScore
+    FROM Members
+    JOIN Teams ON Members.team_id = Teams.id
+    LEFT JOIN Transactions ON Members.id = Transactions.target_id AND Transactions.status = 'APPROVED'
+    GROUP BY Members.id
+    ORDER BY totalScore DESC, Members.name ASC
+  ''');
+  }
+
   Future<List<Map<String, dynamic>>> getTeamPlayers(int teamId) async {
     final db = await database;
     return await db.rawQuery(
@@ -306,11 +322,18 @@ class DatabaseHelper {
     ));
     final pendingTransactionsCount = (txCount.first['total'] as int?) ?? 0;
 
-    // 2. Pending Leader Approvals (Assuming a 'status' column in Leaders table)
-    final leaderCount = (await db.rawQuery(
+    // 2. Pending Leader Approvals
+    final leaderPendingCount = (await db.rawQuery(
       "SELECT COUNT(*) as total FROM Leaders WHERE status = 'PENDING'",
     ));
-    final pendingLeaderCount = (leaderCount.first['total'] as int?) ?? 0;
+    final pendingLeaderCount = (leaderPendingCount.first['total'] as int?) ?? 0;
+
+    // 2.5 Approved Leaders
+    final leaderApprovedCount = (await db.rawQuery(
+      "SELECT COUNT(*) as total FROM Leaders WHERE status = 'APPROVED'",
+    ));
+    final approvedLeaderCount = (leaderApprovedCount.first['total'] as int?) ?? 0;
+
     // 3. Total Members/Teams
     final memberResult = await db.rawQuery(
       "SELECT COUNT(*) AS total FROM Members",
@@ -322,6 +345,7 @@ class DatabaseHelper {
     return {
       'pendingTx': pendingTransactionsCount,
       'pendingLeaders': pendingLeaderCount,
+      'approvedLeaders': approvedLeaderCount,
       'totalMembers': totalMemberCount,
       'onlineLeaders': onlineCount,
     };

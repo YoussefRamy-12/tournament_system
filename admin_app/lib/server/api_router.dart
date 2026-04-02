@@ -174,22 +174,20 @@ class ApiRouter {
               );
               print('📱 Leader connected: $currentLeaderId');
             } else {
-              print('📨 Message from $currentLeaderId: $message');
+              // Any message from the client (including "ping") acts as a heartbeat
+              OnlineLeaderTracker.instance.recordPing(webSocket.sink);
+              if (message != "ping") {
+                print('📨 Message from $currentLeaderId: $message');
+              }
             }
           },
           onDone: () {
-            if (currentLeaderId != null) {
-              print('📱 Leader disconnected: $currentLeaderId');
-              OnlineLeaderTracker.instance.removeConnection(currentLeaderId!);
-            } else {
-              print('🌐 WS: Connection closed before leaderId was sent');
-            }
+            print('📱 WebSocket closed for $currentLeaderId');
+            OnlineLeaderTracker.instance.removeConnectionBySink(webSocket.sink);
           },
           onError: (error) {
-            print('📱 Error with $currentLeaderId: $error');
-            if (currentLeaderId != null) {
-              OnlineLeaderTracker.instance.removeConnection(currentLeaderId!);
-            }
+            print('📱 WebSocket error for $currentLeaderId: $error');
+            OnlineLeaderTracker.instance.removeConnectionBySink(webSocket.sink);
           },
         );
       }),
