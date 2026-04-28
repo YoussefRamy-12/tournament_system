@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:leader_app/ui/app_localizations.dart';
+import 'package:leader_app/ui/feedback_screen.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -236,26 +237,20 @@ class _ScannerScreenState extends State<ScannerScreen> {
     } else {
       // Revert if failed
       if (oldUrl != null) await conn.saveUrl(oldUrl);
-      
-      if (mounted) {
+          if (mounted) {
         final loc = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.translateWithParam('connection_failed_details', 'url', url)),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: loc.translate('details'),
-              textColor: Colors.white,
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text(loc.translate('connection_failed_title')),
-                    content: Text(loc.translateWithParam('connection_failed_message', 'url', url)),
-                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.translate('ok')))],
-                  )
-                );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FeedbackScreen(
+              success: false,
+              title: loc.translate('connection_failed_title'),
+              message: loc.translateWithParam('connection_failed_message', 'url', url),
+              primaryButtonLabel: loc.translate('try_again'),
+              primaryButtonIcon: Icons.refresh_rounded,
+              onPrimaryAction: () {
+                Navigator.pop(context);
+                _hasScanned = false; // Allow re-scanning
               },
             ),
           ),

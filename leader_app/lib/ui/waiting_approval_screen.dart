@@ -4,6 +4,7 @@ import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:leader_app/ui/feedback_screen.dart';
 
 import '../network/api_client.dart';
 import '../network/connection_manager.dart';
@@ -56,49 +57,39 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
   
   void _showRemovedDialog() {
     final loc = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(loc.translate('registration_removed_title')),
-        content: Text(loc.translate('registration_removed_message')),
-        actions: [
-          ElevatedButton(
-            onPressed: () async {
-              await _connection.clearRegistration();
-              if (mounted) {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/scanner',
-                  (route) => false,
-                );
-              }
-            },
-            child: Text(loc.translate('return_to_scan')),
-          ),
-        ],
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FeedbackScreen(
+          success: false,
+          title: loc.translate('registration_removed_title'),
+          message: loc.translate('registration_removed_message'),
+          primaryButtonLabel: loc.translate('return_to_scan'),
+          primaryButtonIcon: Icons.qr_code_scanner_rounded,
+          onPrimaryAction: () async {
+            await _connection.clearRegistration();
+            if (context.mounted) {
+              Navigator.pushNamedAndRemoveUntil(context, '/scanner', (route) => false);
+            }
+          },
+        ),
       ),
     );
   }
 
   void _showRejectedDialog() {
     final loc = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(loc.translate('access_denied_title')),
-        content: Text(loc.translate('access_denied_message')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/scanner',
-              (route) => false,
-            ),
-            child: Text(loc.translate('return_to_scan')),
-          ),
-        ],
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FeedbackScreen(
+          success: false,
+          title: loc.translate('access_denied_title'),
+          message: loc.translate('access_denied_message'),
+          primaryButtonLabel: loc.translate('return_to_scan'),
+          primaryButtonIcon: Icons.qr_code_scanner_rounded,
+          onPrimaryAction: () => Navigator.pushNamedAndRemoveUntil(context, '/scanner', (route) => false),
+        ),
       ),
     );
   }

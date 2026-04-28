@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/network/connection_manager.dart';
+import 'package:leader_app/ui/feedback_screen.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:shared_models/models.dart';
@@ -288,16 +289,29 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     if (mounted) {
       final loc = AppLocalizations.of(context);
       setState(() => _isSubmitting = false);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(loc.translate('score_submitted_success'))),
-        );
-        Navigator.pop(context); // Go back to member list
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(loc.translate('score_submit_failed'))),
-        );
-      }
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FeedbackScreen(
+            success: success,
+            title: success ? loc.translate('success') : loc.translate('error'),
+            message: success 
+                ? loc.translate('score_submitted_success') 
+                : loc.translate('score_submit_failed'),
+            primaryButtonLabel: loc.translate('score_another'),
+            primaryButtonIcon: Icons.person_add_rounded,
+            onPrimaryAction: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.pushNamed(context, '/member_selector');
+            },
+            secondaryButtonLabel: loc.translate('back_to_home'),
+            onSecondaryAction: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+        ),
+      );
     }
   }
 }

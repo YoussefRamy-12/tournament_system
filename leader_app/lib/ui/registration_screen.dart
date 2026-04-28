@@ -4,6 +4,7 @@ import 'package:leader_app/ui/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:leader_app/network/api_client.dart';
 import 'package:leader_app/network/connection_manager.dart';
+import 'package:leader_app/ui/feedback_screen.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 
@@ -84,24 +85,18 @@ void _register() async {
 
       if (mounted) {
         final loc = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${loc.translate('error')}: $displayError'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: loc.translate('details'),
-              textColor: Colors.white,
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text(loc.translate('detailed_error')),
-                    content: Text("Target: $serverUrl\n\nError: $e"),
-                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.translate('ok')))],
-                  )
-                );
-              },
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FeedbackScreen(
+              success: false,
+              title: loc.translate('error'),
+              message: displayError,
+              primaryButtonLabel: loc.translate('try_again'),
+              primaryButtonIcon: Icons.refresh_rounded,
+              onPrimaryAction: () => Navigator.pop(context),
+              secondaryButtonLabel: loc.translate('cancel'),
+              onSecondaryAction: () => Navigator.of(context).popUntil((route) => route.isFirst),
             ),
           ),
         );

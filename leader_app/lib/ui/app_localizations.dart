@@ -112,6 +112,9 @@ class AppLocalizations {
       'app_title': 'Tournament Leader',
       'dashboard': 'Dashboard',
       'welcome_back': 'Welcome back, {name}!',
+      'success': 'Success',
+      'score_another': 'Score Another Member',
+      'back_to_home': 'Back to Home',
     },
     'ar': {
       'settings': 'الإعدادات',
@@ -214,6 +217,9 @@ class AppLocalizations {
       'app_title': 'قائد البطولة',
       'dashboard': 'لوحة التحكم',
       'welcome_back': 'أهلاً بك مجدداً، {name}!',
+      'success': 'نجاح',
+      'score_another': 'تسجيل نقاط لعضو آخر',
+      'back_to_home': 'العودة للرئيسية',
     },
   };
 
