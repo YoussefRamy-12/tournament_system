@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/network/connection_manager.dart';
 import 'package:shared_models/models.dart';
 import 'package:shared_models/constants.dart';
@@ -30,8 +31,9 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text('Score ${widget.member.name}')),
+      appBar: AppBar(title: Text(loc.translateWithParam('score_member', 'name', widget.member.name))),
       body: SingleChildScrollView(
         scrollDirection: Axis.vertical,
         child: Padding(
@@ -45,9 +47,9 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
                     children: [
-                      const Text(
-                        'Points to Award',
-                        style: TextStyle(fontSize: 16),
+                      Text(
+                        loc.translate('points_to_award'),
+                        style: const TextStyle(fontSize: 16),
                       ),
                       Text(
                         '$_points',
@@ -94,11 +96,11 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
               const SizedBox(height: 32),
               // Tag Dropdown
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: "Reason / Tag",
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: loc.translate('reason_tag'),
                 ),
-                hint: const Text('Select a tag'),
+                hint: Text(loc.translate('select_tag')),
                 initialValue: _selectedTag,
                 items: TournamentConstants.scoreTags.map((tag) {
                   return DropdownMenuItem(value: tag, child: Text(tag));
@@ -108,10 +110,10 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Description (Optional)',
-                  hintText: 'Add any additional details...',
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: loc.translate('description_optional'),
+                  hintText: loc.translate('add_details_hint'),
                 ),
                 maxLines: 3,
                 // onChanged: (value) => setState(() => _description = value),
@@ -131,9 +133,9 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
                       : null,
                   child: _isSubmitting
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Submit Score',
-                          style: TextStyle(fontSize: 18),
+                      : Text(
+                          loc.translate('submit_score'),
+                          style: const TextStyle(fontSize: 18),
                         ),
                 ),
               ),
@@ -164,10 +166,11 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
           .timeout(const Duration(seconds: 3));
     } catch (e) {
       if (mounted) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              "Connection lost! Please ensure you are connected to the Admin Laptop.",
+              loc.translate('connection_lost_message'),
             ),
             backgroundColor: Colors.red,
           ),
@@ -180,9 +183,10 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     if (status != 'APPROVED') {
       // 2. If rejected or blocked, kick them back to the waiting screen
       if (mounted) {
-        String message = "Access Revoked: Your account is no longer approved.";
+        final loc = AppLocalizations.of(context);
+        String message = loc.translate('access_revoked_message');
         if (status == 'NOT_FOUND') {
-          message = "Registration Found: Your account was removed by the Admin.";
+          message = loc.translate('registration_not_found_message');
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -214,15 +218,16 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     final success = await _apiClient.submitScore(transaction);
 
     if (mounted) {
+      final loc = AppLocalizations.of(context);
       setState(() => _isSubmitting = false);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Score submitted for approval!')),
+          SnackBar(content: Text(loc.translate('score_submitted_success'))),
         );
         Navigator.pop(context); // Go back to member list
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Failed to connect to Admin Laptop.')),
+          SnackBar(content: Text(loc.translate('score_submit_failed'))),
         );
       }
     }

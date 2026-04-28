@@ -14,7 +14,7 @@ class ApiClient {
 
   final ConnectionManager _connection = ConnectionManager();
   WebSocketChannel? _channel;
-  
+
   // Single source of truth for UI to listen to
   final ValueNotifier<bool> isOnline = ValueNotifier<bool>(false);
   bool _isConnecting = false;
@@ -42,7 +42,7 @@ class ApiClient {
       print("🔌 WS: Attempting connection to: $wsUrl");
       // Add a timeout to the connection attempt
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      
+
       _channel!.stream.listen(
         (message) {
           try {
@@ -66,7 +66,8 @@ class ApiClient {
         onError: (error) {
           String errorMessage = error.toString();
           if (error is Exception && errorMessage.contains("113")) {
-             errorMessage = "No route to host (check if on same Wi-Fi and Firewall is open)";
+            errorMessage =
+                "No route to host (check if on same Wi-Fi and Firewall is open)";
           }
           print("🔌 WS: Connection error for $wsUrl: $errorMessage");
           isOnline.value = false;
@@ -216,11 +217,13 @@ class ApiClient {
       final baseUrl = await _connection.getUrl();
       if (baseUrl == null) return false;
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/delete-leader'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id': leaderId}),
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/delete-leader'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id': leaderId}),
+          )
+          .timeout(const Duration(seconds: 5));
 
       return response.statusCode == 200;
     } catch (e) {

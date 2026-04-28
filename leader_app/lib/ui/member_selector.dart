@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:leader_app/ui/app_localizations.dart';
 import 'package:shared_models/models.dart'; // Use the shared model!
 import '../network/api_client.dart';
 import 'member_list_screen.dart'; // Move the second screen to its own file
@@ -53,10 +54,11 @@ class _MemberSelectorState extends State<MemberSelector> {
       // Only show snackbar if we are in the "refreshing" state (not initial full screen load)
       // or if we want to inform user we are trying to fix it.
       if (!isInitial) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Connection failed. Scanning for Admin laptop..."),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(loc.translate('connection_failed')),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -78,8 +80,12 @@ class _MemberSelectorState extends State<MemberSelector> {
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Reconnected successfully!"),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(
+                  context,
+                ).translate('reconnected_successfully'),
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -98,8 +104,10 @@ class _MemberSelectorState extends State<MemberSelector> {
 
       if (!isInitial) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Could not find server. Please check Wi-Fi."),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).translate('could_not_find_server'),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -109,8 +117,9 @@ class _MemberSelectorState extends State<MemberSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Select Team')),
+      appBar: AppBar(title: Text(loc.translate('select_team'))),
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
         onRefresh: () => _loadData(isInitial: false),
@@ -120,11 +129,12 @@ class _MemberSelectorState extends State<MemberSelector> {
   }
 
   Widget _buildContent() {
+    final loc = AppLocalizations.of(context);
     if (_isLoading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 200), // Push the spinner down a bit
+        children: [
+          const SizedBox(height: 200), // Push the spinner down a bit
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -132,8 +142,8 @@ class _MemberSelectorState extends State<MemberSelector> {
                 CircularProgressIndicator(strokeWidth: 2),
                 SizedBox(height: 16),
                 Text(
-                  "Loading tournament data...",
-                  style: TextStyle(color: Colors.white70),
+                  loc.translate('loading_tournament_data'),
+                  style: const TextStyle(color: Colors.white70),
                 ),
               ],
             ),
@@ -159,23 +169,23 @@ class _MemberSelectorState extends State<MemberSelector> {
                         size: 48,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        "Connection Not Found",
-                        style: TextStyle(
+                      Text(
+                        loc.translate('connection_not_found'),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        "It looks like we can't find the team data. Did you scan the correct QR code for this event?",
+                      Text(
+                        loc.translate('connection_not_found_message'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.black),
+                        style: const TextStyle(color: Colors.black),
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.refresh),
-                        label: const Text("Retry Connection"),
+                        label: Text(loc.translate('retry_connection')),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 24,
@@ -202,18 +212,18 @@ class _MemberSelectorState extends State<MemberSelector> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.group_off, color: Colors.white24, size: 60),
                     SizedBox(height: 16),
                     Text(
-                      "No Teams Registered",
+                      loc.translate('no_teams_registered'),
                       style: TextStyle(fontSize: 18, color: Colors.white54),
                     ),
                     Text(
-                      "Once teams are added, they will appear here.",
+                      loc.translate('teams_will_appear_here'),
                       style: TextStyle(color: Colors.white38),
                     ),
                   ],

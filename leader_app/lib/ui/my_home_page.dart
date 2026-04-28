@@ -53,9 +53,10 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _manualReconnect() async {
+    final loc = AppLocalizations.of(context);
     setState(() => _isManualChecking = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Re-scanning network for Admin laptop...")),
+      SnackBar(content: Text(loc.translate('reconnecting'))),
     );
     
     String? found = await _apiClient.findNewServerIP();
@@ -65,11 +66,11 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       if (found != null) {
         _apiClient.connectWebSocket();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Connected!"), backgroundColor: Colors.green),
+          SnackBar(content: Text(loc.translate('connected')), backgroundColor: Colors.green),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Laptop not found. Check Wi-Fi."), backgroundColor: Colors.red),
+          SnackBar(content: Text(loc.translate('laptop_not_found')), backgroundColor: Colors.red),
         );
       }
     }

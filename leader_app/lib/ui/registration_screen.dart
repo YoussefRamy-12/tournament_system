@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:leader_app/ui/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:leader_app/network/api_client.dart';
 import 'package:leader_app/network/connection_manager.dart';
@@ -27,7 +28,7 @@ void _register() async {
     // 1. Validation: Don't submit if name is empty
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your name')),
+        SnackBar(content: Text(AppLocalizations.of(context).translate('please_enter_name'))),
       );
       return;
     }
@@ -42,7 +43,7 @@ void _register() async {
       serverUrl = await conn.getUrl();
       
       if (serverUrl == null) {
-        throw Exception("Server URL not found. Please scan again.");
+        throw Exception(AppLocalizations.of(context).translate('server_url_not_found'));
       }
 
       final leaderId = await conn.getOrGenerateLeaderId();
@@ -80,21 +81,22 @@ void _register() async {
       }
 
       if (mounted) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $displayError'),
+            content: Text('${loc.translate('error')}: $displayError'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
-              label: 'Details',
+              label: loc.translate('details'),
               textColor: Colors.white,
               onPressed: () {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text("Detailed Error"),
+                    title: Text(loc.translate('detailed_error')),
                     content: Text("Target: $serverUrl\n\nError: $e"),
-                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
+                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.translate('ok')))],
                   )
                 );
               },
@@ -139,8 +141,9 @@ void _register() async {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Leader Registration')),
+      appBar: AppBar(title: Text(loc.translate('leader_registration'))),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -167,7 +170,7 @@ void _register() async {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        isOnline ? "Connected to Server" : "Searching for Server...",
+                        isOnline ? loc.translate('connected_to_server') : loc.translate('searching_for_server'),
                         style: TextStyle(
                           color: isOnline ? Colors.green[700] : Colors.red[700],
                           fontWeight: FontWeight.bold,
@@ -179,14 +182,14 @@ void _register() async {
                 );
               },
             ),
-            const Text('Enter your name to join the tournament as a Leader.', textAlign: TextAlign.center),
+            Text(loc.translate('registration_instruction'), textAlign: TextAlign.center),
             const SizedBox(height: 20),
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
+              decoration: InputDecoration(
+                labelText: loc.translate('full_name'),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.person),
               ),
             ),
             const SizedBox(height: 24),
@@ -202,7 +205,7 @@ void _register() async {
                 ),
                 child: _isSubmitting 
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Register and Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    : Text(loc.translate('register_and_continue'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             )
           ],

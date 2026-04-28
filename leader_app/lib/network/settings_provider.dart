@@ -83,7 +83,7 @@ class SettingsProvider with ChangeNotifier {
     final leaderId = await _connectionManager.getOrGenerateLeaderId();
     // Notify server first
     await ApiClient().deleteLeader(leaderId);
-    
+
     // Then clear locally
     await _connectionManager.clearRegistration();
     _leaderName = "";

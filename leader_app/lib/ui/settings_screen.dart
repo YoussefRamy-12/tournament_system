@@ -12,16 +12,15 @@ class SettingsScreen extends StatelessWidget {
     final loc = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(loc.translate('settings')),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text(loc.translate('settings')), elevation: 0),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildSectionTitle(loc.translate('account')),
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             elevation: 2,
             child: Column(
               children: [
@@ -34,8 +33,14 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.delete_forever_outlined, color: Colors.red),
-                  title: Text(loc.translate('delete_account'), style: const TextStyle(color: Colors.red)),
+                  leading: const Icon(
+                    Icons.delete_forever_outlined,
+                    color: Colors.red,
+                  ),
+                  title: Text(
+                    loc.translate('delete_account'),
+                    style: const TextStyle(color: Colors.red),
+                  ),
                   onTap: () => _showDeleteConfirmation(context, settings, loc),
                 ),
               ],
@@ -44,19 +49,25 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _buildSectionTitle(loc.translate('appearance')),
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             elevation: 2,
             child: Column(
               children: [
                 SwitchListTile(
                   secondary: Icon(
-                    settings.themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
+                    settings.themeMode == ThemeMode.dark
+                        ? Icons.dark_mode
+                        : Icons.light_mode,
                     color: Colors.amber,
                   ),
                   title: Text(loc.translate('dark_mode')),
                   value: settings.themeMode == ThemeMode.dark,
                   onChanged: (bool value) {
-                    settings.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
+                    settings.setThemeMode(
+                      value ? ThemeMode.dark : ThemeMode.light,
+                    );
                   },
                 ),
                 const Divider(height: 1),
@@ -67,8 +78,14 @@ class SettingsScreen extends StatelessWidget {
                     value: settings.locale.languageCode,
                     underline: const SizedBox(),
                     items: [
-                      DropdownMenuItem(value: 'en', child: Text(loc.translate('english'))),
-                      DropdownMenuItem(value: 'ar', child: Text(loc.translate('arabic'))),
+                      DropdownMenuItem(
+                        value: 'en',
+                        child: Text(loc.translate('english')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'ar',
+                        child: Text(loc.translate('arabic')),
+                      ),
                     ],
                     onChanged: (String? value) {
                       if (value != null) {
@@ -79,7 +96,10 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -127,7 +147,11 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showEditNameDialog(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+  void _showEditNameDialog(
+    BuildContext context,
+    SettingsProvider settings,
+    AppLocalizations loc,
+  ) {
     final controller = TextEditingController(text: settings.leaderName);
     showDialog(
       context: context,
@@ -141,7 +165,10 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.translate('cancel'))),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(loc.translate('cancel')),
+          ),
           ElevatedButton(
             onPressed: () {
               settings.setLeaderName(controller.text);
@@ -154,20 +181,32 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, SettingsProvider settings, AppLocalizations loc) {
+  void _showDeleteConfirmation(
+    BuildContext context,
+    SettingsProvider settings,
+    AppLocalizations loc,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(loc.translate('delete_account')),
         content: Text(loc.translate('confirm_delete')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.translate('cancel'))),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(loc.translate('cancel')),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               await settings.deleteAccount();
               if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/scanner', (route) => false);
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/scanner', (route) => false);
               }
             },
             child: Text(loc.translate('delete')),

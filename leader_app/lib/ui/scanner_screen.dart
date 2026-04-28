@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:leader_app/ui/app_localizations.dart';
 import '../network/api_client.dart';
 import '../network/connection_manager.dart';
 
@@ -31,8 +32,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("Scan Admin QR Code")),
+      appBar: AppBar(title: Text(loc.translate('scan_admin_qr'))),
       body: Stack(
         children: [
           MobileScanner(
@@ -71,15 +73,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
             right: 20,
             child: Column(
               children: [
-                const Text(
-                  "Trouble scanning?",
-                  style: TextStyle(color: Colors.white70),
+                Text(
+                  loc.translate('trouble_scanning'),
+                  style: const TextStyle(color: Colors.white70),
                 ),
                 TextButton(
                   onPressed: _showManualIpDialog,
                   style: TextButton.styleFrom(backgroundColor: Colors.black45),
-                  child: const Text("Enter Server IP Manually",
-                      style: TextStyle(color: Colors.white)),
+                  child: Text(loc.translate('enter_ip_manually'),
+                      style: const TextStyle(color: Colors.white)),
                 ),
               ],
             ),
@@ -91,22 +93,23 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   void _showManualIpDialog() {
     final TextEditingController _ipController = TextEditingController();
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Manual Server Connect"),
+        title: Text(loc.translate('manual_server_connect')),
         content: TextField(
           controller: _ipController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: "e.g., 192.168.1.15",
-            labelText: "Server IP",
+            labelText: loc.translate('server_ip'),
           ),
           keyboardType: TextInputType.number,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: Text(loc.translate('cancel')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -119,7 +122,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 _processUrl(ip);
               }
             },
-            child: const Text("Connect"),
+            child: Text(loc.translate('ok')),
           ),
         ],
       ),
@@ -160,9 +163,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
       apiClient.connectWebSocket();
 
       if (mounted) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connected to server successfully!'),
+          SnackBar(
+            content: Text(loc.translate('connected_successfully')),
             backgroundColor: Colors.green,
           ),
         );
@@ -173,27 +177,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
       if (oldUrl != null) await conn.saveUrl(oldUrl);
       
       if (mounted) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not reach server at $url. Check Wi-Fi/Firewall.'),
+            content: Text(loc.translateWithParam('connection_failed_details', 'url', url)),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
-              label: 'Details',
+              label: loc.translate('details'),
               textColor: Colors.white,
               onPressed: () {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text("Connection Failed"),
-                    content: Text(
-                      "The app tried to reach $url but got no response.\n\n"
-                      "Possible causes:\n"
-                      "1. Phone and Laptop are on DIFFERENT Wi-Fi.\n"
-                      "2. Windows Firewall is blocking Port 8080.\n"
-                      "3. The IP address has changed on the laptop."
-                    ),
-                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
+                    title: Text(loc.translate('connection_failed_title')),
+                    content: Text(loc.translateWithParam('connection_failed_message', 'url', url)),
+                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.translate('ok')))],
                   )
                 );
               },

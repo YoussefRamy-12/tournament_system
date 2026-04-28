@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:leader_app/ui/app_localizations.dart';
 
 import '../network/api_client.dart';
 import '../network/connection_manager.dart';
@@ -51,14 +52,13 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
 
   
   void _showRemovedDialog() {
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Registration Removed'),
-        content: const Text(
-          'Your registration was removed by the Admin. Please register again to join the tournament.',
-        ),
+        title: Text(loc.translate('registration_removed_title')),
+        content: Text(loc.translate('registration_removed_message')),
         actions: [
           ElevatedButton(
             onPressed: () async {
@@ -71,7 +71,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
                 );
               }
             },
-            child: const Text('Return to Scan'),
+            child: Text(loc.translate('return_to_scan')),
           ),
         ],
       ),
@@ -79,12 +79,13 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
   }
 
   void _showRejectedDialog() {
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Access Denied'),
-        content: const Text('Your registration was not approved by the Admin.'),
+        title: Text(loc.translate('access_denied_title')),
+        content: Text(loc.translate('access_denied_message')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pushNamedAndRemoveUntil(
@@ -92,7 +93,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
               '/scanner',
               (route) => false,
             ),
-            child: const Text('Return to Scan'),
+            child: Text(loc.translate('return_to_scan')),
           ),
         ],
       ),
@@ -107,6 +108,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       body: Center(
         child: Padding(
@@ -116,19 +118,19 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
             children: [
               const CircularProgressIndicator(),
               const SizedBox(height: 24),
-              const Text(
-                'Waiting for Admin Approval...',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                loc.translate('waiting_for_approval'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Please ask the Admin to approve your device on the laptop.',
+              Text(
+                loc.translate('ask_admin_approval'),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
               TextButton(
                 onPressed: _checkStatus, // Manual refresh button
-                child: const Text('Check Status Now'),
+                child: Text(loc.translate('check_status_now')),
               ),
             ],
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:leader_app/ui/app_localizations.dart';
 import '../network/api_client.dart'; // Ensure this points to your client
 
 class HistoryScreen extends StatefulWidget {
@@ -47,10 +48,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (!mounted) return;
 
       if (!isInitial) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Connection failed. Scanning for Admin laptop..."),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(loc.translate('connection_failed')),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -69,8 +71,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
             _error = null;
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Reconnected successfully!"),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(
+                  context,
+                ).translate('reconnected_successfully'),
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -86,8 +92,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       if (!isInitial) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Could not find server. Please check Wi-Fi."),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).translate('could_not_find_server'),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -97,8 +105,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('My Scoring Requests')),
+      appBar: AppBar(title: Text(loc.translate('my_scoring_requests'))),
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
         onRefresh: () => _loadData(isInitial: false),
@@ -108,6 +117,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildContent() {
+    final loc = AppLocalizations.of(context);
     if (_isLoading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -135,23 +145,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         size: 48,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        "Oops! Something went wrong",
-                        style: TextStyle(
+                      Text(
+                        loc.translate('oops_something_wrong'),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        "We couldn't load the history right now. Please try again.",
+                      Text(
+                        loc.translate('could_not_load_members'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.black),
+                        style: const TextStyle(color: Colors.black),
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.refresh),
-                        label: const Text("Try Again"),
+                        label: Text(loc.translate('try_again')),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 24,
@@ -183,9 +193,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: const Center(
-                child: Text('You haven\'t submitted any scores yet.'),
-              ),
+              child: Center(child: Text(loc.translate('no_scores_yet'))),
             ),
           );
         },
@@ -207,7 +215,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       children: [
         if (pending.isNotEmpty)
           _buildStatusSection(
-            'PENDING REQUESTS',
+            loc.translate('pending_requests'),
             Colors.orange,
             pending,
             Icons.hourglass_empty,
@@ -215,14 +223,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (pending.isNotEmpty) const SizedBox(height: 24),
         if (approved.isNotEmpty)
           _buildStatusSection(
-            'APPROVED',
+            loc.translate('approved'),
             Colors.green,
             approved,
             Icons.check_circle,
           ),
         if (approved.isNotEmpty) const SizedBox(height: 24),
         if (rejected.isNotEmpty)
-          _buildStatusSection('REJECTED', Colors.red, rejected, Icons.cancel),
+          _buildStatusSection(
+            loc.translate('rejected'),
+            Colors.red,
+            rejected,
+            Icons.cancel,
+          ),
       ],
     );
   }
@@ -233,6 +246,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     List<Map<String, dynamic>> items,
     IconData icon,
   ) {
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -266,26 +280,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
             itemBuilder: (context, index) {
               final item = items[index];
               return ListTile(
-                isThreeLine: item['description'] != null && item['description'].toString().isNotEmpty,
+                isThreeLine:
+                    item['description'] != null &&
+                    item['description'].toString().isNotEmpty,
                 title: Text(
-                  item['memberName'] ?? 'Unknown Member',
+                  item['memberName'] ?? loc.translate('unknown_member'),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${item['tag']} • ${item['points'] > 0 ? "+" : ""}${item['points']} pts'),
-                    if (item['description'] != null && item['description'].toString().isNotEmpty)
+                    Text(
+                      '${item['tag']} • ${item['points'] > 0 ? "+" : ""}${item['points']} pts',
+                    ),
+                    if (item['description'] != null &&
+                        item['description'].toString().isNotEmpty)
                       Text(
                         item['description'],
-                        style: TextStyle(color: Colors.grey[700], fontStyle: FontStyle.italic, fontSize: 13),
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontStyle: FontStyle.italic,
+                          fontSize: 13,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
                 trailing: Text(
-                  item['timestamp'].toString().substring(11, 16), // Shows "HH:mm"
+                  item['timestamp'].toString().substring(
+                    11,
+                    16,
+                  ), // Shows "HH:mm"
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               );
