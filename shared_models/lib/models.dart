@@ -91,8 +91,8 @@ class ScoreTransaction {
   factory ScoreTransaction.fromJson(Map<String, dynamic> json) =>
       ScoreTransaction(
         id: json['id'],
-        memberId: json['targetId'],
-        leaderId: json['leader_id'],
+        memberId: json['target_id'] ?? json['targetId'],
+        leaderId: json['leader_id'] ?? json['leaderId'],
         points: json['points'],
         tag: json['tag'],
         status: json['status'],

@@ -3,7 +3,8 @@ import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../network/api_client.dart';
+import 'package:provider/provider.dart';
+import '../providers/tournament_provider.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -13,97 +14,15 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final ApiClient _apiClient = ApiClient();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
-
-  List<Map<String, dynamic>>? _historyRequests;
-  bool _isLoading = true;
-  Object? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadData(isInitial: true);
-  }
-
-  Future<void> _loadData({bool isInitial = false}) async {
-    if (isInitial) {
-      if (mounted) {
-        setState(() {
-          _isLoading = true;
-          _error = null;
-        });
-      }
-    }
-
-    try {
-      final data = await _apiClient.fetchMyHistory().timeout(
-        const Duration(seconds: 5),
-      );
-      if (!mounted) return;
-      setState(() {
-        _historyRequests = data;
-        _isLoading = false;
-        _error = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      if (!isInitial) {
-        final loc = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.translate('connection_failed')),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-
-      final newIp = await _apiClient.findNewServerIP();
-
-      if (newIp != null) {
-        try {
-          final retryData = await _apiClient.fetchMyHistory().timeout(
-            const Duration(seconds: 5),
-          );
-          if (!mounted) return;
-          setState(() {
-            _historyRequests = retryData;
-            _isLoading = false;
-            _error = null;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(
-                  context,
-                ).translate('reconnected_successfully'),
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-          return;
-        } catch (_) {}
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _error = e;
-        _isLoading = false;
-      });
-
-      if (!isInitial) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).translate('could_not_find_server'),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TournamentProvider>().fetchHistory();
+    });
   }
 
   @override
@@ -130,7 +49,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: SafeArea(
           child: RefreshIndicator(
             key: _refreshIndicatorKey,
-            onRefresh: () => _loadData(isInitial: false),
+            onRefresh: () => context.read<TournamentProvider>().fetchHistory(),
             child: _buildContent(),
           ),
         ),
@@ -140,7 +59,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildContent() {
     final loc = AppLocalizations.of(context);
-    if (_isLoading) {
+    final tournament = context.watch<TournamentProvider>();
+
+    if (tournament.isLoading && tournament.history.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -151,7 +72,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ],
         ),
       );
-    } else if (_error != null) {
+    } else if (tournament.errorMessage != null && tournament.history.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -167,7 +88,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  loc.translate('could_not_load_members'),
+                  tournament.errorMessage!,
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.grey),
                 ),
@@ -184,7 +105,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       );
     }
 
-    final allRequests = _historyRequests ?? [];
+    final allRequests = tournament.history;
 
     if (allRequests.isEmpty) {
       return Center(
@@ -320,7 +241,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
                 Text(
-                  item['timestamp'].toString().substring(11, 16),
+                  item['timestamp'].toString().length >= 16 
+                    ? item['timestamp'].toString().substring(11, 16)
+                    : "",
                   style: TextStyle(color: isDark ? Colors.white30 : Colors.black26, fontSize: 12),
                 ),
               ],
@@ -331,3 +254,4 @@ class _HistoryScreenState extends State<HistoryScreen> {
     ).animate().fadeIn(duration: 500.ms).slideX(begin: 0.05, end: 0);
   }
 }
+

@@ -5,8 +5,9 @@ import 'package:leader_app/ui/feedback_screen.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../network/api_client.dart';
-import '../network/connection_manager.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/connectivity_provider.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -17,26 +18,12 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen> {
   bool _hasScanned = false;
-  late bool _hasRegistered;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeRegistration();
-  }
-
-  Future<void> _initializeRegistration() async {
-    _hasRegistered = await ConnectionManager().isRegistered();
-    // Ensure we are connected if we already have a URL
-    if (await ConnectionManager().getUrl() != null) {
-      ApiClient().connectWebSocket();
-    }
-    setState(() {});
-  }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final auth = context.watch<AuthProvider>();
+
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
@@ -49,17 +36,19 @@ class _ScannerScreenState extends State<ScannerScreen> {
         children: [
           MobileScanner(
             onDetect: (capture) async {
-              if (_hasRegistered) {
+              if (auth.status == AuthStatus.approved) {
                 Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
                 return;
               } else {
                 if (_hasScanned) return;
-                _hasScanned = true;
-
+                
                 final List<Barcode> barcodes = capture.barcodes;
                 if (barcodes.isNotEmpty) {
                   final String? scannedUrl = barcodes.first.rawValue;
-                  _processUrl(scannedUrl);
+                  if (scannedUrl != null) {
+                    _hasScanned = true;
+                    _processUrl(scannedUrl);
+                  }
                 }
               }
             },
@@ -115,7 +104,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  loc.translate('registration_instruction'), // Reusing instruction key
+                  loc.translate('registration_instruction'),
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 500.ms),
@@ -191,40 +180,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
   }
 
-  Future<void> _processUrl(String? url) async {
-    if (url == null || !url.startsWith('http') || url.isEmpty) return;
-
+  Future<void> _processUrl(String url) async {
     // Show loading indicator
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-    }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
-    final conn = ConnectionManager();
-    final apiClient = ApiClient();
-
-    // 1. TEMPORARILY save for testing
-    final oldUrl = await conn.getUrl();
-    await conn.saveUrl(url);
-
-    // 2. Validate connection
-    bool isAvailable = await apiClient.isServerAvailable();
+    final auth = context.read<AuthProvider>();
+    final success = await auth.processScannedUrl(url);
 
     if (mounted) {
       Navigator.pop(context); // Close loading indicator
     }
 
-    if (isAvailable) {
-      // 3. Generate the ID immediately
-      await conn.getOrGenerateLeaderId();
-
-      // 4. TRIGGER WEBSOCKET IMMEDIATELY
-      apiClient.connectWebSocket();
-
+    if (success) {
+      // Start WebSocket connection
       if (mounted) {
+        context.read<ConnectivityProvider>().connect();
+        
         final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -232,12 +207,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pushNamedAndRemoveUntil(context, '/registration', (route) => false);
+        // Navigation is handled by main.dart listener
       }
     } else {
-      // Revert if failed
-      if (oldUrl != null) await conn.saveUrl(oldUrl);
-          if (mounted) {
+      if (mounted) {
         final loc = AppLocalizations.of(context);
         Navigator.push(
           context,
@@ -245,12 +218,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
             builder: (context) => FeedbackScreen(
               success: false,
               title: loc.translate('connection_failed_title'),
-              message: loc.translateWithParam('connection_failed_message', 'url', url),
+              message: auth.errorMessage ?? loc.translateWithParam('connection_failed_message', 'url', url),
               primaryButtonLabel: loc.translate('try_again'),
               primaryButtonIcon: Icons.refresh_rounded,
               onPrimaryAction: () {
                 Navigator.pop(context);
-                _hasScanned = false; // Allow re-scanning
+                setState(() => _hasScanned = false);
               },
             ),
           ),
@@ -259,3 +232,4 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 }
+

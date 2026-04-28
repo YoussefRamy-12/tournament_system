@@ -14,6 +14,20 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen> {
 
   void _handleAction(String id, String status) async {
     await _dbHelper.updateLeaderStatus(id, status);
+    
+    // Notify the leader via WebSocket if they are online
+    if (status == 'APPROVED') {
+      OnlineLeaderTracker.instance.sendToLeader(
+        id, 
+        '{"type": "status_update", "status": "APPROVED"}'
+      );
+    } else if (status == 'REJECTED') {
+      OnlineLeaderTracker.instance.sendToLeader(
+        id, 
+        '{"type": "status_update", "status": "REJECTED"}'
+      );
+    }
+
     if (mounted) {
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(

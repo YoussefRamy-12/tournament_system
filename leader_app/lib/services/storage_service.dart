@@ -1,90 +1,90 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-class ConnectionManager {
+class StorageService {
   static const String _urlKey = "server_url";
+  static const String _leaderIdKey = 'leader_id';
+  static const String _leaderNameKey = "leader_name";
+  static const String _isRegisteredKey = 'is_registered';
+  static const String _themeModeKey = "theme_mode";
+  static const String _languageCodeKey = "language_code";
+  static const String _fontSizeFactorKey = "font_size_factor";
 
-  // Save the URL from the QR code (e.g., http://192.168.1.15:8080)
   Future<void> saveUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_urlKey, url);
   }
 
-  // Get the saved URL
   Future<String?> getUrl() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_urlKey);
   }
 
-  // Get or generate a unique Leader ID
   Future<String> getOrGenerateLeaderId() async {
     final prefs = await SharedPreferences.getInstance();
-    String? leaderId = prefs.getString('leader_id');
+    String? leaderId = prefs.getString(_leaderIdKey);
 
     if (leaderId == null) {
-      leaderId = const Uuid()
-          .v4(); // Generates a unique string like '550e8400-e29b...'
-      await prefs.setString('leader_id', leaderId);
+      leaderId = const Uuid().v4();
+      await prefs.setString(_leaderIdKey, leaderId);
     }
     return leaderId;
   }
 
   Future<void> saveLeaderName(String name) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("leader_name", name);
+    await prefs.setString(_leaderNameKey, name);
   }
 
   Future<String?> getLeaderName() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString("leader_name");
+    return prefs.getString(_leaderNameKey);
   }
 
-  Future<void> setRegistered() async {
+  Future<void> setRegistered(bool registered) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_registered', true);
+    await prefs.setBool(_isRegisteredKey, registered);
   }
 
   Future<bool> isRegistered() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('is_registered') ?? false;
+    return prefs.getBool(_isRegisteredKey) ?? false;
   }
 
   Future<void> saveThemeMode(String mode) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("theme_mode", mode);
+    await prefs.setString(_themeModeKey, mode);
   }
 
   Future<String> getThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString("theme_mode") ?? "system";
+    return prefs.getString(_themeModeKey) ?? "system";
   }
 
   Future<void> saveLanguageCode(String code) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("language_code", code);
+    await prefs.setString(_languageCodeKey, code);
   }
 
   Future<String> getLanguageCode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString("language_code") ?? "en";
+    return prefs.getString(_languageCodeKey) ?? "en";
   }
 
   Future<void> saveFontSizeFactor(double factor) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble("font_size_factor", factor);
+    await prefs.setDouble(_fontSizeFactorKey, factor);
   }
 
   Future<double> getFontSizeFactor() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble("font_size_factor") ?? 1.0;
+    return prefs.getDouble(_fontSizeFactorKey) ?? 1.0;
   }
 
   Future<void> clearRegistration() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('leader_id');
-    await prefs.remove('leader_name');
-    await prefs.remove('is_registered');
-    // We keep server_url so the user doesn't have to scan the QR again 
-    // unless they really want to connect to a different server.
+    await prefs.remove(_leaderIdKey);
+    await prefs.remove(_leaderNameKey);
+    await prefs.remove(_isRegisteredKey);
   }
 }

@@ -1,8 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:leader_app/network/api_client.dart';
-import 'package:leader_app/network/settings_provider.dart';
+import 'package:leader_app/providers/auth_provider.dart';
+import 'package:leader_app/providers/connectivity_provider.dart';
+import 'package:leader_app/providers/settings_provider.dart';
 import 'package:leader_app/ui/history_screen.dart';
 import 'package:leader_app/ui/member_selector.dart';
 import 'package:leader_app/ui/scanner_screen.dart';
@@ -15,15 +14,6 @@ import 'package:provider/provider.dart';
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -31,7 +21,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
-  final _apiClient = ApiClient();
   bool _isManualChecking = false;
 
   @override
@@ -39,7 +28,15 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Ensure we attempt to connect if not already
-    _apiClient.connectWebSocket();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final connectivity = context.read<ConnectivityProvider>();
+      connectivity.onStatusUpdate = (status) {
+        if (mounted) {
+          context.read<AuthProvider>().checkApproval();
+        }
+      };
+      connectivity.connect();
+    });
   }
 
   @override
@@ -52,23 +49,28 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       // App is back! Check immediately
-      _apiClient.connectWebSocket();
+      context.read<ConnectivityProvider>().connect();
     }
   }
 
   Future<void> _manualReconnect() async {
     final loc = AppLocalizations.of(context);
+    final auth = context.read<AuthProvider>();
+    final connectivity = context.read<ConnectivityProvider>();
+
     setState(() => _isManualChecking = true);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(loc.translate('reconnecting'))));
 
-    String? found = await _apiClient.findNewServerIP();
+    // For manual reconnect, we can try to find the server again if URL is lost or IP changed
+    // but here we just trigger a refresh and check approval
+    await auth.checkApproval();
+    await connectivity.connect();
 
     if (mounted) {
       setState(() => _isManualChecking = false);
-      if (found != null) {
-        _apiClient.connectWebSocket();
+      if (connectivity.isOnline) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(loc.translate('connected')),
@@ -90,6 +92,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final connectivity = context.watch<ConnectivityProvider>();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -98,33 +101,28 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         backgroundColor: Colors.transparent,
         actions: [
           // Connection Status Indicator
-          ValueListenableBuilder<bool>(
-            valueListenable: _apiClient.isOnline,
-            builder: (context, isOnline, _) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Center(
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: isOnline
-                          ? Colors.green
-                          : (_isManualChecking ? Colors.yellow : Colors.red),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isOnline ? Colors.green : Colors.red)
-                              .withOpacity(0.4),
-                          blurRadius: 8,
-                          spreadRadius: 2,
-                        ),
-                      ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Center(
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: connectivity.isOnline
+                      ? Colors.green
+                      : (_isManualChecking ? Colors.yellow : Colors.red),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (connectivity.isOnline ? Colors.green : Colors.red)
+                          .withOpacity(0.4),
+                      blurRadius: 8,
+                      spreadRadius: 2,
                     ),
-                  ),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.sync_problem),
@@ -292,3 +290,4 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     );
   }
 }
+

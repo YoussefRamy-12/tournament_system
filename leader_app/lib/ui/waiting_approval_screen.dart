@@ -1,13 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:leader_app/ui/feedback_screen.dart';
-
-import '../network/api_client.dart';
-import '../network/connection_manager.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/connectivity_provider.dart';
 
 class WaitingApprovalScreen extends StatefulWidget {
   const WaitingApprovalScreen({super.key});
@@ -17,93 +15,35 @@ class WaitingApprovalScreen extends StatefulWidget {
 }
 
 class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
-  Timer? _timer;
-  final ApiClient _apiClient = ApiClient();
-  final ConnectionManager _connection = ConnectionManager();
-
   @override
   void initState() {
     super.initState();
-    // 1. Ensure we are connected to WebSocket so we show as "Online"
-    _apiClient.connectWebSocket();
-
-    // 2. Start checking every 5 seconds
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      _checkStatus();
+    // Ensure we are connected to WebSocket
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      final connectivity = context.read<ConnectivityProvider>();
+      
+      connectivity.onStatusUpdate = (status) {
+        if (mounted) {
+          auth.checkApproval();
+        }
+      };
+      
+      connectivity.connect();
     });
   }
 
-  Future<void> _checkStatus() async {
-    final leaderId = await _connection.getOrGenerateLeaderId();
-    final status = await _apiClient.checkLeaderStatus(leaderId);
-
-    if (!mounted) return;
-
-    if (status == 'APPROVED') {
-      _timer?.cancel();
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-    } else if (status == 'REJECTED') {
-      _timer?.cancel();
-      _showRejectedDialog(); // This breaks the loop and shows the "Try Again" button
-    } else if (status == 'NOT_FOUND') {
-      _timer?.cancel();
-      _showRemovedDialog();
-    } else if (status == 'ERROR' || status == 'CONNECTION_ERROR') {
-      // Optional: Show a small toast or message that the server is unreachable
-      // print("Waiting for server to recover...");
-    }
-  }
-
-  
-  void _showRemovedDialog() {
-    final loc = AppLocalizations.of(context);
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FeedbackScreen(
-          success: false,
-          title: loc.translate('registration_removed_title'),
-          message: loc.translate('registration_removed_message'),
-          primaryButtonLabel: loc.translate('return_to_scan'),
-          primaryButtonIcon: Icons.qr_code_scanner_rounded,
-          onPrimaryAction: () async {
-            await _connection.clearRegistration();
-            if (context.mounted) {
-              Navigator.pushNamedAndRemoveUntil(context, '/scanner', (route) => false);
-            }
-          },
-        ),
-      ),
-    );
-  }
-
-  void _showRejectedDialog() {
-    final loc = AppLocalizations.of(context);
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FeedbackScreen(
-          success: false,
-          title: loc.translate('access_denied_title'),
-          message: loc.translate('access_denied_message'),
-          primaryButtonLabel: loc.translate('return_to_scan'),
-          primaryButtonIcon: Icons.qr_code_scanner_rounded,
-          onPrimaryAction: () => Navigator.pushNamedAndRemoveUntil(context, '/scanner', (route) => false),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  void _checkStatus() {
+    context.read<AuthProvider>().checkApproval();
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final auth = context.watch<AuthProvider>();
+
+    // main.dart handles general routing based on auth.status.
 
     return Scaffold(
       body: Container(
@@ -210,3 +150,5 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
     );
   }
 }
+
+

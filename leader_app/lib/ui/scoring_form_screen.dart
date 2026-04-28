@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:leader_app/ui/app_localizations.dart';
-import 'package:leader_app/network/connection_manager.dart';
 import 'package:leader_app/ui/feedback_screen.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:shared_models/models.dart';
 import 'package:shared_models/constants.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../network/api_client.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/tournament_provider.dart';
+import '../services/storage_service.dart';
 
 class ScoringFormScreen extends StatefulWidget {
   final Member member;
@@ -18,20 +20,11 @@ class ScoringFormScreen extends StatefulWidget {
 }
 
 class _ScoringFormScreenState extends State<ScoringFormScreen> {
-  final ApiClient _apiClient = ApiClient();
   final TextEditingController _descriptionController = TextEditingController();
   int _points = 0;
   String? _selectedTag;
 
   bool _isSubmitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeLeaderId();
-  }
-
-  Future<void> _initializeLeaderId() async {}
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +148,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
                               : Colors.grey.withOpacity(0.05),
                         ),
                         hint: Text(loc.translate('select_tag')),
-                        initialValue: _selectedTag,
+                        value: _selectedTag,
                         items: TournamentConstants.scoreTags.map((tag) {
                           return DropdownMenuItem(value: tag, child: Text(tag));
                         }).toList(),
@@ -226,68 +219,46 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   }
 
   Future<void> _submitScore() async {
-    final conn = ConnectionManager();
-    final leaderId = await conn.getOrGenerateLeaderId();
+    final auth = context.read<AuthProvider>();
+    final tournament = context.read<TournamentProvider>();
+    final storage = context.read<StorageService>();
+    final loc = AppLocalizations.of(context);
+
+    setState(() => _isSubmitting = true);
 
     // 1. Ask the server: "Am I still allowed to do this?"
-    String status = 'UNKNOWN';
-    try {
-      status = await _apiClient
-          .checkLeaderStatus(leaderId)
-          .timeout(const Duration(seconds: 3));
-    } catch (e) {
-      if (mounted) {
-        final loc = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.translate('connection_lost_message')),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() => _isSubmitting = false);
-      }
-      return;
-    }
+    await auth.checkApproval();
 
-    if (status != 'APPROVED') {
-      // 2. If rejected or blocked, kick them back to the waiting screen
+    if (auth.status != AuthStatus.approved) {
       if (mounted) {
-        final loc = AppLocalizations.of(context);
         String message = loc.translate('access_revoked_message');
-        if (status == 'NOT_FOUND') {
+        if (auth.status == AuthStatus.scanning) {
           message = loc.translate('registration_not_found_message');
         }
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/waiting_approval',
-          (route) => false,
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        // Navigation is handled by main.dart listener
       }
       return;
     }
 
-    // 3. Only if APPROVED, proceed with the actual submission
+    // 2. Only if APPROVED, proceed with the actual submission
+    final leaderId = await storage.getOrGenerateLeaderId();
 
     final transaction = ScoreTransaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       memberId: widget.member.id,
       leaderId: leaderId,
-      points:
-          _points, // Fixed: your code used _selectedPoints which didn't exist
+      points: _points,
       tag: _selectedTag!,
       status: 'PENDING',
       timestamp: DateTime.now(),
       description: _descriptionController.text.trim(),
     );
 
-    final success = await _apiClient.submitScore(transaction);
+    final success = await tournament.submitScore(transaction);
 
     if (mounted) {
-      final loc = AppLocalizations.of(context);
       setState(() => _isSubmitting = false);
       
       Navigator.push(
@@ -315,3 +286,4 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     }
   }
 }
+

@@ -130,7 +130,18 @@ class OnlineLeaderTracker {
 
   void broadcast(String message) {
     for (var channel in _connections.values) {
-      channel.sink.add(message);
+      try {
+        channel.sink.add(message);
+      } catch (_) {}
+    }
+  }
+
+  void sendToLeader(String leaderId, String message) {
+    final channel = _connections[leaderId];
+    if (channel != null) {
+      try {
+        channel.sink.add(message);
+      } catch (_) {}
     }
   }
 }

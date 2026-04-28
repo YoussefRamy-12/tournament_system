@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:leader_app/network/api_client.dart';
-import 'package:leader_app/network/connection_manager.dart';
+import '../services/storage_service.dart';
+import '../services/api_service.dart';
 
 class SettingsProvider with ChangeNotifier {
-  final _connectionManager = ConnectionManager();
+  final StorageService _storage;
+  final ApiService _api;
 
   ThemeMode _themeMode = ThemeMode.system;
   Locale _locale = const Locale('en');
@@ -15,15 +16,17 @@ class SettingsProvider with ChangeNotifier {
   double get fontSizeFactor => _fontSizeFactor;
   String get leaderName => _leaderName;
 
-  SettingsProvider() {
+  SettingsProvider({required StorageService storage, required ApiService api})
+      : _storage = storage,
+        _api = api {
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
-    final theme = await _connectionManager.getThemeMode();
-    final lang = await _connectionManager.getLanguageCode();
-    final font = await _connectionManager.getFontSizeFactor();
-    final name = await _connectionManager.getLeaderName() ?? "";
+    final theme = await _storage.getThemeMode();
+    final lang = await _storage.getLanguageCode();
+    final font = await _storage.getFontSizeFactor();
+    final name = await _storage.getLeaderName() ?? "";
 
     _themeMode = _parseThemeMode(theme);
     _locale = Locale(lang);
@@ -57,35 +60,37 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
-    await _connectionManager.saveThemeMode(_themeModeToString(mode));
+    await _storage.saveThemeMode(_themeModeToString(mode));
     notifyListeners();
   }
 
   Future<void> setLocale(Locale locale) async {
     _locale = locale;
-    await _connectionManager.saveLanguageCode(locale.languageCode);
+    await _storage.saveLanguageCode(locale.languageCode);
     notifyListeners();
   }
 
   Future<void> setFontSizeFactor(double factor) async {
     _fontSizeFactor = factor;
-    await _connectionManager.saveFontSizeFactor(factor);
+    await _storage.saveFontSizeFactor(factor);
     notifyListeners();
   }
 
   Future<void> setLeaderName(String name) async {
     _leaderName = name;
-    await _connectionManager.saveLeaderName(name);
+    await _storage.saveLeaderName(name);
     notifyListeners();
   }
 
   Future<void> deleteAccount() async {
-    final leaderId = await _connectionManager.getOrGenerateLeaderId();
-    // Notify server first
-    await ApiClient().deleteLeader(leaderId);
+    final leaderId = await _storage.getOrGenerateLeaderId();
+    final baseUrl = await _storage.getUrl();
+    
+    if (baseUrl != null) {
+      await _api.deleteLeader(baseUrl, leaderId);
+    }
 
-    // Then clear locally
-    await _connectionManager.clearRegistration();
+    await _storage.clearRegistration();
     _leaderName = "";
     notifyListeners();
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:leader_app/network/settings_provider.dart';
+import 'package:leader_app/providers/auth_provider.dart';
+import 'package:leader_app/providers/settings_provider.dart';
 import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
@@ -236,7 +237,9 @@ class SettingsScreen extends StatelessWidget {
             label: loc.translate('delete'),
             gradient: const LinearGradient(colors: [Colors.red, Colors.redAccent]),
             onPressed: () async {
+              final auth = context.read<AuthProvider>();
               await settings.deleteAccount();
+              auth.logout();
               if (context.mounted) {
                 Navigator.of(context).pushNamedAndRemoveUntil('/scanner', (route) => false);
               }
@@ -247,3 +250,4 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
+

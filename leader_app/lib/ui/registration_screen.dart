@@ -1,16 +1,15 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:leader_app/ui/app_localizations.dart';
-import 'package:http/http.dart' as http;
-import 'package:leader_app/network/api_client.dart';
-import 'package:leader_app/network/connection_manager.dart';
 import 'package:leader_app/ui/feedback_screen.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
+import '../providers/connectivity_provider.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  // final String serverUrl;
-  const RegistrationScreen({super.key,/* required this.serverUrl*/});
+  const RegistrationScreen({super.key});
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -23,123 +22,68 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure we are connected to WebSocket so we show as "Online" to the admin
-    ApiClient().connectWebSocket();
+    // Ensure we are connected to WebSocket
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ConnectivityProvider>().connect();
+    });
   }
-  
-void _register() async {
-    // 1. Validation: Don't submit if name is empty
+
+  void _register() async {
+    final loc = AppLocalizations.of(context);
+    final auth = context.read<AuthProvider>();
+
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).translate('please_enter_name'))),
+        SnackBar(content: Text(loc.translate('please_enter_name'))),
       );
       return;
     }
 
     setState(() => _isSubmitting = true);
-    
-    String? serverUrl;
+
     try {
-      final conn = ConnectionManager();
-      
-      // 2. Properly AWAIT the URL retrieval
-      serverUrl = await conn.getUrl();
-      
-      if (serverUrl == null) {
-        throw Exception(AppLocalizations.of(context).translate('server_url_not_found'));
-      }
+      final success = await auth.register(_nameController.text.trim());
 
-      final leaderId = await conn.getOrGenerateLeaderId();
-      await conn.saveLeaderName(_nameController.text.trim());
-
-      // 3. Make the Network Request
-      final response = await http.post(
-        Uri.parse('$serverUrl/register-leader'),
-        body: jsonEncode({
-          'id': leaderId,
-          'name': /*_nameController.text.trim()*/ await conn.getLeaderName(),
-          'deviceInfo': 'Mobile Device', 
-        }),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 10)); // Add a timeout so it doesn't spin forever
-
-      if (response.statusCode == 200) {
-        // 4. Save registration status locally
-        await conn.setRegistered();
-        
+      if (success) {
+        // Sync name with settings provider for immediate UI update in home
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/waiting_approval');
+          context.read<SettingsProvider>().setLeaderName(
+            _nameController.text.trim(),
+          );
         }
+        // Navigation is handled by main.dart listener
       } else {
-        // throw Exception("Server returned ${response.statusCode}");
-        throw Exception("Server Error 500: ${response.body}");
+        throw Exception(auth.errorMessage ?? "Registration failed");
       }
     } catch (e) {
       setState(() => _isSubmitting = false);
-      print("❌ Registration failed to $serverUrl: $e");
-      
-      String displayError = e.toString();
-      if (e is http.ClientException || e.toString().contains("SocketException")) {
-        displayError = "Connection Failed. Ensure you are on the same Wi-Fi as the Admin Laptop at $serverUrl";
-      }
 
       if (mounted) {
-        final loc = AppLocalizations.of(context);
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => FeedbackScreen(
               success: false,
               title: loc.translate('error'),
-              message: displayError,
+              message: e.toString(),
               primaryButtonLabel: loc.translate('try_again'),
               primaryButtonIcon: Icons.refresh_rounded,
               onPrimaryAction: () => Navigator.pop(context),
               secondaryButtonLabel: loc.translate('cancel'),
-              onSecondaryAction: () => Navigator.of(context).popUntil((route) => route.isFirst),
+              onSecondaryAction: () =>
+                  Navigator.of(context).popUntil((route) => route.isFirst),
             ),
           ),
         );
       }
     }
   }
-  // void _register() async {
-  //   setState(() => _isSubmitting = true);
-    
-  //   final conn = ConnectionManager();
-  //   final leaderId = await conn.getOrGenerateLeaderId();
-  //   final serverUrl = await conn.getUrl();
-    
-  //   // Save the URL first so we can talk to the server
-  //   // await conn.saveUrl(serverUrl as String);
-
-  //   final response = await http.post(
-  //     Uri.parse('$serverUrl/register-leader'),
-  //     body: jsonEncode({
-  //       'id': leaderId,
-  //       'name': _nameController.text,
-  //       'deviceInfo': 'Android/iOS Device', // Optional: capture device model
-  //     }),
-  //     headers: {'Content-Type': 'application/json'},
-  //   );
-
-  //   if (response.statusCode == 200) {
-  //     // Save registration status locally
-  //     final prefs = await SharedPreferences.getInstance();
-  //     await prefs.setBool('is_registered', true);
-      
-  //     // Go to a "Waiting" screen or Home
-  //     if (mounted) {
-  //       Navigator.pushReplacementNamed(context, '/waiting_approval');
-  //     }
-  //   }
-  // }
-
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final connectivity = context.watch<ConnectivityProvider>();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -152,8 +96,8 @@ void _register() async {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDark 
-                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+            colors: isDark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
                 : [AppTheme.lightBg, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -173,49 +117,63 @@ void _register() async {
                     gradient: AppTheme.primaryGradient,
                     boxShadow: AppTheme.softShadow,
                   ),
-                  child: const Icon(Icons.emoji_events, size: 64, color: Colors.white),
+                  child: const Icon(
+                    Icons.emoji_events,
+                    size: 64,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Connection Status Indicator
-                ValueListenableBuilder<bool>(
-                  valueListenable: ApiClient().isOnline,
-                  builder: (context, isOnline, child) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: isOnline ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: isOnline ? Colors.green.withOpacity(0.5) : Colors.orange.withOpacity(0.5)),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: connectivity.isOnline
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: connectivity.isOnline
+                          ? Colors.green.withOpacity(0.5)
+                          : Colors.orange.withOpacity(0.5),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: connectivity.isOnline
+                              ? Colors.green
+                              : Colors.orange,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: isOnline ? Colors.green : Colors.orange,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            isOnline ? loc.translate('connected_to_server') : loc.translate('searching_for_server'),
-                            style: TextStyle(
-                              color: isOnline ? Colors.green : Colors.orange,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 10),
+                      Text(
+                        connectivity.isOnline
+                            ? loc.translate('connected_to_server')
+                            : loc.translate('searching_for_server'),
+                        style: TextStyle(
+                          color: connectivity.isOnline
+                              ? Colors.green
+                              : Colors.orange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 PremiumCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

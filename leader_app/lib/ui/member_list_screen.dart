@@ -5,7 +5,8 @@ import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:shared_models/models.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../network/api_client.dart';
+import 'package:provider/provider.dart';
+import '../providers/tournament_provider.dart';
 
 class MemberListScreen extends StatefulWidget {
   final Team team;
@@ -17,91 +18,15 @@ class MemberListScreen extends StatefulWidget {
 }
 
 class _MemberListScreenState extends State<MemberListScreen> {
-  final ApiClient _apiClient = ApiClient();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
-
-  List<Member>? _members;
-  bool _isLoading = true;
-  Object? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadData(isInitial: true);
-  }
-
-  Future<void> _loadData({bool isInitial = false}) async {
-    if (isInitial) {
-      if (mounted) {
-        setState(() {
-          _isLoading = true;
-          _error = null;
-        });
-      }
-    }
-
-    try {
-      final members = await _apiClient
-          .fetchMembers(widget.team.id)
-          .timeout(const Duration(seconds: 5));
-      if (!mounted) return;
-      setState(() {
-        _members = members;
-        _isLoading = false;
-        _error = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      if (!isInitial) {
-        final loc = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.translate('connection_failed')),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-
-      final newIp = await _apiClient.findNewServerIP();
-
-      if (newIp != null) {
-        try {
-          final membersRetry = await _apiClient
-              .fetchMembers(widget.team.id)
-              .timeout(const Duration(seconds: 5));
-          if (!mounted) return;
-          setState(() {
-            _members = membersRetry;
-            _isLoading = false;
-            _error = null;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context).translate('reconnected_successfully')),
-              backgroundColor: Colors.green,
-            ),
-          );
-          return;
-        } catch (_) {}
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _error = e;
-        _isLoading = false;
-      });
-
-      if (!isInitial) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).translate('could_not_find_server')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TournamentProvider>().fetchMembers(widget.team.id);
+    });
   }
 
   @override
@@ -128,7 +53,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         child: SafeArea(
           child: RefreshIndicator(
             key: _refreshIndicatorKey,
-            onRefresh: () => _loadData(isInitial: false),
+            onRefresh: () => context.read<TournamentProvider>().fetchMembers(widget.team.id),
             child: _buildContent(),
           ),
         ),
@@ -138,7 +63,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
   Widget _buildContent() {
     final loc = AppLocalizations.of(context);
-    if (_isLoading) {
+    final tournament = context.watch<TournamentProvider>();
+    final members = tournament.getMembersForTeam(widget.team.id);
+
+    if (tournament.isLoading && members.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -149,7 +77,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
           ],
         ),
       );
-    } else if (_error != null) {
+    } else if (tournament.errorMessage != null && members.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -165,7 +93,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  loc.translate('could_not_load_members'),
+                  tournament.errorMessage!,
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.grey),
                 ),
@@ -181,8 +109,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
         ),
       );
     }
-
-    final members = _members ?? [];
 
     if (members.isEmpty) {
       return Center(
@@ -244,3 +170,4 @@ class _MemberListScreenState extends State<MemberListScreen> {
     );
   }
 }
+

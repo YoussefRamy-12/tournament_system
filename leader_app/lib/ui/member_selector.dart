@@ -4,7 +4,8 @@ import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:shared_models/models.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../network/api_client.dart';
+import 'package:provider/provider.dart';
+import '../providers/tournament_provider.dart';
 import 'member_list_screen.dart';
 
 class MemberSelector extends StatefulWidget {
@@ -15,86 +16,15 @@ class MemberSelector extends StatefulWidget {
 }
 
 class _MemberSelectorState extends State<MemberSelector> {
-  final ApiClient _apiClient = ApiClient();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
-  List<Team>? _teams;
-  bool _isLoading = true;
-  Object? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadData(isInitial: true);
-  }
-
-  Future<void> _loadData({bool isInitial = false}) async {
-    if (isInitial) {
-      if (mounted) {
-        setState(() {
-          _isLoading = true;
-          _error = null;
-        });
-      }
-    }
-
-    try {
-      final teams = await _apiClient.fetchTeams().timeout(
-        const Duration(seconds: 5),
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _teams = teams;
-        _isLoading = false;
-        _error = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      if (!isInitial) {
-        final loc = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.translate('connection_failed')),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-
-      final newIp = await _apiClient.findNewServerIP();
-
-      if (newIp != null) {
-        try {
-          final teamsRetry = await _apiClient.fetchTeams().timeout(
-            const Duration(seconds: 5),
-          );
-
-          if (!mounted) return;
-          setState(() {
-            _teams = teamsRetry;
-            _isLoading = false;
-            _error = null;
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context).translate('reconnected_successfully'),
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-          return;
-        } catch (retryError) {}
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _error = e;
-        _isLoading = false;
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TournamentProvider>().fetchTeams();
+    });
   }
 
   @override
@@ -121,7 +51,7 @@ class _MemberSelectorState extends State<MemberSelector> {
         child: SafeArea(
           child: RefreshIndicator(
             key: _refreshIndicatorKey,
-            onRefresh: () => _loadData(isInitial: false),
+            onRefresh: () => context.read<TournamentProvider>().fetchTeams(),
             child: _buildContent(),
           ),
         ),
@@ -131,7 +61,9 @@ class _MemberSelectorState extends State<MemberSelector> {
 
   Widget _buildContent() {
     final loc = AppLocalizations.of(context);
-    if (_isLoading) {
+    final tournament = context.watch<TournamentProvider>();
+
+    if (tournament.isLoading && tournament.teams.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -142,7 +74,7 @@ class _MemberSelectorState extends State<MemberSelector> {
           ],
         ),
       );
-    } else if (_error != null) {
+    } else if (tournament.errorMessage != null && tournament.teams.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -158,7 +90,7 @@ class _MemberSelectorState extends State<MemberSelector> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  loc.translate('connection_not_found_message'),
+                  tournament.errorMessage!,
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.grey),
                 ),
@@ -173,7 +105,7 @@ class _MemberSelectorState extends State<MemberSelector> {
           ),
         ),
       );
-    } else if (_teams == null || _teams!.isEmpty) {
+    } else if (tournament.teams.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -186,12 +118,14 @@ class _MemberSelectorState extends State<MemberSelector> {
       );
     }
 
+    final teams = tournament.teams;
+
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(24),
-      itemCount: _teams!.length,
+      itemCount: teams.length,
       itemBuilder: (context, index) {
-        final team = _teams![index];
+        final team = teams[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: PremiumCard(
@@ -212,7 +146,7 @@ class _MemberSelectorState extends State<MemberSelector> {
                   ),
                   child: Center(
                     child: Text(
-                      team.name[0].toUpperCase(),
+                      team.name.isNotEmpty ? team.name[0].toUpperCase() : "?",
                       style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -228,7 +162,7 @@ class _MemberSelectorState extends State<MemberSelector> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Tap to view members", // Localize this if possible
+                        "Tap to view members",
                         style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                     ],
@@ -243,3 +177,4 @@ class _MemberSelectorState extends State<MemberSelector> {
     );
   }
 }
+
