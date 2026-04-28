@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../database/db_helper.dart'; // Import your local DB helper
+import 'package:flutter_animate/flutter_animate.dart';
+import '../database/db_helper.dart';
 
 class AdminHistoryScreen extends StatefulWidget {
   const AdminHistoryScreen({super.key});
@@ -8,70 +9,49 @@ class AdminHistoryScreen extends StatefulWidget {
   State<AdminHistoryScreen> createState() => _AdminHistoryScreenState();
 }
 
-class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
+class _AdminHistoryScreenState extends State<AdminHistoryScreen> with SingleTickerProviderStateMixin {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Global Transaction History'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => setState(() {}),
-          ),
-        ],
+        title: const Text('Transaction History'),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorSize: TabBarIndicatorSize.label,
+          tabs: const [
+            Tab(text: 'Approved'),
+            Tab(text: 'Pending'),
+            Tab(text: 'Rejected'),
+          ],
+        ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _dbHelper.getAllTransactions(), // Local DB call
+        future: _dbHelper.getAllTransactions(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          final allRequests = snapshot.data ?? [];
+          final all = snapshot.data!;
+          final approved = all.where((i) => i['status'] == 'APPROVED').toList();
+          final pending = all.where((i) => i['status'] == 'PENDING').toList();
+          final rejected = all.where((i) => i['status'] == 'REJECTED').toList();
 
-          if (allRequests.isEmpty) {
-            return const Center(child: Text('No transactions recorded yet.'));
-          }
-
-          // Grouping logic remains the same
-          final approved =
-              allRequests.where((i) => i['status'] == 'APPROVED').toList();
-          final rejected =
-              allRequests.where((i) => i['status'] == 'REJECTED').toList();
-          final pending =
-              allRequests.where((i) => i['status'] == 'PENDING').toList();
-
-          return ListView(
-            padding: const EdgeInsets.all(16.0),
+          return TabBarView(
+            controller: _tabController,
             children: [
-              if (pending.isNotEmpty)
-                _buildStatusSection(
-                  'PENDING APPROVAL',
-                  Colors.orange,
-                  pending,
-                  Icons.hourglass_empty,
-                ),
-              if (pending.isNotEmpty) const SizedBox(height: 24),
-
-              if (approved.isNotEmpty)
-                _buildStatusSection(
-                  'APPROVED',
-                  Colors.green,
-                  approved,
-                  Icons.check_circle,
-                ),
-              if (approved.isNotEmpty) const SizedBox(height: 24),
-
-              if (rejected.isNotEmpty)
-                _buildStatusSection(
-                  'REJECTED',
-                  Colors.red,
-                  rejected,
-                  Icons.cancel,
-                ),
+              _buildHistoryList(approved, Colors.green, isDark),
+              _buildHistoryList(pending, Colors.orange, isDark),
+              _buildHistoryList(rejected, Colors.red, isDark),
             ],
           );
         },
@@ -79,120 +59,101 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
     );
   }
 
-  Widget _buildStatusSection(
-    String status,
-    Color color,
-    List<Map<String, dynamic>> items,
-    IconData icon,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  Widget _buildHistoryList(List<Map<String, dynamic>> items, Color color, bool isDark) {
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              status,
-              style: TextStyle(color: color, fontWeight: FontWeight.bold),
-            ),
+            Icon(Icons.history_rounded, size: 64, color: color.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            Text('No transactions found', style: TextStyle(color: isDark ? Colors.white60 : Colors.black45)),
           ],
         ),
-        const SizedBox(height: 8),
-        Container(
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return _buildHistoryCard(item, color, isDark)
+          .animate()
+          .fadeIn(delay: (index * 30).ms)
+          .slideY(begin: 0.1, end: 0);
+      },
+    );
+  }
+
+  Widget _buildHistoryCard(Map<String, dynamic> item, Color color, bool isDark) {
+    final points = item['points'] ?? 0;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+        ),
+      ),
+      child: ListTile(
+        onTap: () => _showStatusPicker(context, item),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
-            border: Border.all(color: color.withValues(alpha: 0.3)),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: items.length,
-            separatorBuilder:
-                (context, index) =>
-                    Divider(color: color.withValues(alpha: 0.1), height: 1),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return ListTile(
-                onTap: () => _showStatusPicker(context, item),
-                title: Text(item['memberName'] ?? 'Unknown Member'),
-                // Added Leader Name to the subtitle for Admin visibility
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('By: ${item['leaderName'] ?? "Unknown"} • ${item['tag']}'),
-                    if (item['description'] != null && item['description'].toString().isNotEmpty)
-                      Text(
-                        item['description'],
-                        style: TextStyle(color: Colors.grey[700], fontStyle: FontStyle.italic, fontSize: 13),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${item['points'] > 0 ? "+" : ""}${item['points']} pts',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color:
-                            item['points'] < 0
-                                ? Colors.redAccent
-                                : Colors.green,
-                      ),
-                    ),
-                    Text(
-                      item['timestamp'].toString().substring(11, 16),
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              );
-            },
+          child: Center(
+            child: Text(
+              '${points > 0 ? "+" : ""}$points',
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
-      ],
+        title: Text(item['memberName'] ?? 'Unknown Member', style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text('${item['tag']} • ${item['leaderName']}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        trailing: Text(
+          item['timestamp'].toString().substring(11, 16),
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ),
     );
   }
 
   void _showStatusPicker(BuildContext context, Map<String, dynamic> item) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "Change Transaction Status",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const Text("Manage Transaction", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              _buildStatusBtn(context, item['id'], 'APPROVED', Colors.green),
+              const SizedBox(height: 12),
+              _buildStatusBtn(context, item['id'], 'PENDING', Colors.orange),
+              const SizedBox(height: 12),
+              _buildStatusBtn(context, item['id'], 'REJECTED', Colors.red),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Divider(),
               ),
-              const SizedBox(height: 20),
-              _buildStatusOption(context, item['id'], 'PENDING', Colors.orange),
-              _buildStatusOption(context, item['id'], 'APPROVED', Colors.green),
-              _buildStatusOption(context, item['id'], 'REJECTED', Colors.red),
-              const SizedBox(height: 10),
-              const Divider(),
-              // --- NEW DELETE OPTION ---
               ListTile(
-                leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text(
-                  "Delete Permanently",
-                  style: TextStyle(color: Colors.red),
-                ),
+                leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+                title: const Text("Delete Permanently", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                 onTap: () {
-                  Navigator.pop(context); // Close bottom sheet
-                  _confirmDelete(context, item['id']); // Open confirmation
+                  Navigator.pop(context);
+                  _confirmDelete(context, item['id']);
                 },
               ),
-              const SizedBox(height: 10),
             ],
           ),
         );
@@ -200,64 +161,52 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
     );
   }
 
-  void _confirmDelete(BuildContext context, String id) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text("Delete Transaction?"),
-            content: const Text(
-              "This action cannot be undone. The points will be removed from the leaderboard immediately.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () async {
-                  await _dbHelper.deleteTransaction(id);
-                  if (!ctx.mounted) return;
-                  Navigator.pop(ctx);
-                  setState(() {}); // Refresh the history list
-
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Transaction deleted")),
-                  );
-                },
-                child: const Text(
-                  "Delete",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Widget _buildStatusOption(
-    BuildContext context,
-    String id,
-    String status,
-    Color color,
-  ) {
-    return ListTile(
-      leading: Icon(Icons.circle, color: color),
-      title: Text("Mark as $status"),
+  Widget _buildStatusBtn(BuildContext context, String id, String status, Color color) {
+    return InkWell(
       onTap: () async {
         await _dbHelper.updateTransactionStatus(id, status);
         if (!context.mounted) return;
-        Navigator.pop(context); // Close sheet
-        setState(
-          () {},
-        ); // Refresh the screen to move the item to the new section
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Transaction moved to $status")));
+        Navigator.pop(context);
+        setState(() {});
       },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.circle, size: 12, color: color),
+            const SizedBox(width: 12),
+            Text("Mark as $status", style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, String id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Transaction?"),
+        content: const Text("This action cannot be undone and will update the leaderboard immediately."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await _dbHelper.deleteTransaction(id);
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              setState(() {});
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:admin_app/database/csv_service.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
@@ -23,29 +24,10 @@ class _SetupScreenState extends State<SetupScreen> {
 
       if (result != null) {
         final csvService = CsvService();
-
-        // Check if database has existing data
         final hasData = await csvService.hasExistingData();
 
         if (hasData) {
-          // Clear existing rows before importing
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Data Exist!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
           await csvService.clearAllMembers();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Data Cleared!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
         }
 
         await csvService.importMembersFromCsv(result.files.single.path!);
@@ -54,6 +36,7 @@ class _SetupScreenState extends State<SetupScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Import Successful!'),
+              behavior: SnackBarBehavior.floating,
               backgroundColor: Colors.green,
             ),
           );
@@ -64,6 +47,7 @@ class _SetupScreenState extends State<SetupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Import Failed: $e'),
+            behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.red,
           ),
         );
@@ -75,32 +59,48 @@ class _SetupScreenState extends State<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Tournament Setup')),
+      appBar: AppBar(title: const Text('System Setup')),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.upload_file, size: 64, color: Colors.blue),
-            const SizedBox(height: 20),
-            const Text(
-              'Import Members from CSV',
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : _pickAndImportCsv,
-              icon:
-                  _isLoading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Icon(Icons.folder_open),
-              label: Text(_isLoading ? 'Importing...' : 'Pick CSV File'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.upload_file_rounded, size: 80, color: Colors.indigoAccent),
+              ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
+              const SizedBox(height: 32),
+              const Text(
+                'Import Tournament Data',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Upload a CSV file containing your members and teams. This will replace any existing player data.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+              ),
+              const SizedBox(height: 48),
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _pickAndImportCsv,
+                icon: _isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.file_present_rounded),
+                label: Text(_isLoading ? 'Processing...' : 'Select CSV File'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(240, 60),
+                ),
+              ).animate().fadeIn(delay: 400.ms),
+            ],
+          ),
         ),
       ),
     );

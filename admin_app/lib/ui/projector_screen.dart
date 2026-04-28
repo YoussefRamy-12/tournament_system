@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'package:admin_app/ui/team_roater_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../database/db_helper.dart';
 
 class ProjectorStatsScreen extends StatefulWidget {
@@ -15,25 +16,23 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
   Timer? _refreshTimer;
   List<Map<String, dynamic>> _teams = [];
   List<Map<String, dynamic>> _top10Players = [];
-  // List<Map<String, dynamic>> _allPlayers = [];
 
   @override
   void initState() {
     super.initState();
     _refreshData();
-    // Auto-refresh every 30 seconds to show live updates from Leaders
-    _refreshTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (t) => _refreshData(),
-    );
-    _loadPlayerStats();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (t) => _refreshData());
   }
 
   void _refreshData() async {
     final teamsData = await _dbHelper.getLeaderboardData();
-    setState(() {
-      _teams = teamsData;
-    });
+    final top10Data = await _dbHelper.getTop10Players();
+    if (mounted) {
+      setState(() {
+        _teams = teamsData;
+        _top10Players = top10Data;
+      });
+    }
   }
 
   @override
@@ -45,502 +44,250 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0E14), // Ultra dark background
+      backgroundColor: const Color(0xFF020617), // Deepest Navy
       appBar: AppBar(
-        title: const Text("Projector: Live Tournament Standings"),
-        // backgroundColor: const Color(0xFF1F2330),
+        title: Text(
+          "TOURNAMENT ARENA",
+          style: GoogleFonts.orbitron(letterSpacing: 2, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(40.0),
-        child: Column(
-          children: [
-            const Text(
-              "TOURNAMENT LIVE STANDINGS",
-              style: TextStyle(
-                color: Colors.amber,
-                fontSize: 48,
-                letterSpacing: 4,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.5,
+            colors: [
+              Colors.indigo.withValues(alpha: 0.1),
+              Colors.transparent,
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 48.0, vertical: 24),
+          child: Column(
+            children: [
+              _buildMainTitle(),
+              const SizedBox(height: 48),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: _buildGlassPanel(
+                        title: "TEAM STANDINGS",
+                        icon: Icons.groups_rounded,
+                        child: _buildTeamList(),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                    Expanded(
+                      flex: 4,
+                      child: _buildGlassPanel(
+                        title: "TOP PERFORMERS",
+                        icon: Icons.emoji_events_rounded,
+                        child: _buildPlayerList(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Divider(
-              color: Colors.amber,
-              thickness: 3,
-              indent: 100,
-              endIndent: 100,
-            ),
-            const SizedBox(height: 40),
-            Expanded(
-              child: Row(
-                children: [
-                  // Team Standings Section
-                  Expanded(
-                    flex: 1,
-                    child: _buildPanel("TEAM SCORES", _buildTeamTable()),
-                  ),
-                  const SizedBox(width: 20),
-                  // Top Players Section
-                  Expanded(
-                    flex: 1,
-                    child: _buildPanel("TOP PLAYERS", _buildPlayerList()),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildPanel(String title, Widget content) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
+  Widget _buildMainTitle() {
+    return Column(
+      children: [
+        Text(
+          "LEADERBOARD",
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 64,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: -2,
+          ),
+        ).animate().fadeIn(duration: 800.ms).slideY(begin: -0.2, end: 0),
+        Container(
+          width: 200,
+          height: 6,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Colors.indigo, Colors.cyan]),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ).animate().scaleX(delay: 400.ms, duration: 600.ms),
+      ],
+    );
+  }
+
+  Widget _buildGlassPanel({required String title, required IconData icon, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Icon(icon, color: Colors.indigoAccent, size: 28),
+              const SizedBox(width: 16),
               Text(
                 title,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white70,
+                  letterSpacing: 1.2,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Expanded(child: content),
+          const SizedBox(height: 32),
+          Expanded(child: child),
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 1.seconds).slideY(begin: 0.05, end: 0);
   }
 
-  Widget _buildTeamTable() {
-    if (_teams.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.amber),
-      );
-    }
+  Widget _buildTeamList() {
+    if (_teams.isEmpty) return const Center(child: CircularProgressIndicator());
 
     return ListView.builder(
       itemCount: _teams.length,
       itemBuilder: (context, index) {
         final team = _teams[index];
+        final isTop3 = index < 3;
+        final score = team['totalScore'] ?? 0;
 
-        return Card(
-          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-          color: Colors.white.withValues(alpha: 0.05),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            // Triggers the member list dialog we created
-            onTap: () {
-              final teamId = team['id'];
-
-              if (teamId != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => TeamRosterScreen(
-                          teamId: team['id'],
-                          teamName: team['name'],
-                        ),
-                  ),
-                );
-              } else {
-                // debugPrint("Error: Team ID is null for $teamName");
-                // Optional: Show a snackbar so you know why it didn't open
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Cannot open team: Missing ID")),
-                );
-              }
-            },
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 8,
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: isTop3 ? Colors.indigo.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isTop3 ? Colors.indigo.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
             ),
-            leading: Container(
-              width: 50,
-              alignment: Alignment.center,
-              child: Text(
-                "#${index + 1}",
-                style: TextStyle(
-                  color:
-                      index == 0
-                          ? Colors.amber
-                          : index == 1
-                          ? Colors.grey
-                          : index == 2
-                          ? Colors.brown
-                          : Colors.white38,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+          ),
+          child: Row(
+            children: [
+              _buildRankBadge(index + 1),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Text(
+                  team['name'] ?? 'Unknown Team',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 28,
+                    fontWeight: isTop3 ? FontWeight.bold : FontWeight.w500,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-            title: Text(
-              team['name'] ?? 'Unknown Team',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
+              Text(
+                "$score",
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: score < 0 ? Colors.redAccent : Colors.greenAccent,
+                ),
               ),
-            ),
-            subtitle: const Text(
-              "Tap to view members",
-              style: TextStyle(color: Colors.white24, fontSize: 14),
-            ),
-            trailing: Text(
-              "${team['totalScore'] ?? 0}",
-              style: TextStyle(
-                color:
-                    team['totalScore'] < 0
-                        ? Colors.redAccent
-                        : Colors.greenAccent,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            ],
           ),
-        );
+        ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: -0.05, end: 0);
       },
     );
   }
 
-  Widget _buildPlayerList() {
-    if (_top10Players.isEmpty) {
-      return const Center(
+  Widget _buildRankBadge(int rank) {
+    Color color = Colors.white24;
+    if (rank == 1) color = const Color(0xFFFFD700); // Gold
+    if (rank == 2) color = const Color(0xFFC0C0C0); // Silver
+    if (rank == 3) color = const Color(0xFFCD7F32); // Bronze
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
+      ),
+      child: Center(
         child: Text(
-          "No approved points yet...",
-          style: TextStyle(color: Colors.white54),
+          "$rank",
+          style: GoogleFonts.plusJakartaSans(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
-      );
-    }
+      ),
+    );
+  }
+
+  Widget _buildPlayerList() {
+    if (_top10Players.isEmpty) return const Center(child: Text("No scores yet", style: TextStyle(color: Colors.white30)));
 
     return ListView.builder(
       itemCount: _top10Players.length,
       itemBuilder: (context, index) {
         final player = _top10Players[index];
-
-        return ListTile(
-          shape: ShapeBorder.lerp(
-            RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(0),
-              side: BorderSide(color: Colors.white, width: 1),
-            ),
-            null,
-            5.0,
-          ),
-          // Use your logic: Tapping opens the specific details dialog
-          onTap: () => _showPlayerDetails(player),
-          contentPadding: const EdgeInsets.symmetric(vertical: 4),
-          leading: Text(
-            "#${index + 1}",
-            style: TextStyle(
-              fontSize: 28,
-              color:
-                  index < 3
-                      ? Colors.amber
-                      : const Color.fromARGB(208, 211, 211, 211),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          title: Text(
-            player['name'] ?? 'Unknown Member',
-            style: const TextStyle(color: Colors.white, fontSize: 24),
-          ),
-          subtitle: Text(
-            player['teamName'] ?? 'No Team',
-            style: const TextStyle(color: Colors.white54, fontSize: 18),
-          ),
-          trailing: Text(
-            "${player['totalScore'] ?? 0}",
-            style: TextStyle(
-              color:
-                  player['totalScore'] < 0
-                      ? Colors.redAccent
-                      : Colors.greenAccent,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _loadPlayerStats() async {
-    final top10Data = await _dbHelper.getTop10Players();
-    if (mounted) {
-      setState(() {
-        _top10Players = top10Data;
-        // _allPlayers = data;
-      });
-    }
-  }
-
-  // void _showTeamDetails(int teamId, String teamName) async {
-  //   final members = await _dbHelper.getTeamPlayers(teamId);
-
-  //   showDialog(
-  //     context: context,
-  //     builder:
-  //         (context) => AlertDialog(
-  //           backgroundColor: const Color(0xFF0F172A),
-  //           title: Text(
-  //             "$teamName Roster",
-  //             style: const TextStyle(color: Colors.amber, fontSize: 28),
-  //           ),
-  //           content: SizedBox(
-  //             width: 450,
-  //             child: Column(
-  //               mainAxisSize: MainAxisSize.min,
-  //               children: [
-  //                 const Divider(color: Colors.white24),
-  //                 const SizedBox(height: 10),
-  //                 // Header for the list
-  //                 const Row(
-  //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                   children: [
-  //                     Text(
-  //                       "Member Name",
-  //                       style: TextStyle(color: Colors.white54),
-  //                     ),
-  //                     Text(
-  //                       "Total Points",
-  //                       style: TextStyle(color: Colors.white54),
-  //                     ),
-  //                   ],
-  //                 ),
-  //                 const SizedBox(height: 10),
-  //                 // List of members
-  //                 Flexible(
-  //                   child: ListView.builder(
-  //                     shrinkWrap: true,
-  //                     itemCount: members.length,
-  //                     itemBuilder: (context, index) {
-  //                       final m = members[index];
-  //                       return Padding(
-  //                         padding: const EdgeInsets.symmetric(vertical: 8.0),
-  //                         child: Row(
-  //                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                           children: [
-  //                             Text(
-  //                               m['name'],
-  //                               style: const TextStyle(
-  //                                 color: Colors.white,
-  //                                 fontSize: 20,
-  //                               ),
-  //                             ),
-  //                             Text(
-  //                               m['memberTotal'] != null ? "${m['memberTotal']} pts": "0 pts",
-  //                               style: TextStyle(
-  //                                 color: m['memberTotal']  != null && m['memberTotal'] >=0 ? Colors.greenAccent : Colors.redAccent,
-  //                                 fontSize: 20,
-  //                                 fontWeight: FontWeight.bold,
-  //                               ),
-  //                             ),
-  //                           ],
-  //                         ),
-  //                       );
-  //                     },
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //           actions: [
-  //             TextButton(
-  //               onPressed: () => Navigator.pop(context),
-  //               child: const Text(
-  //                 "CLOSE",
-  //                 style: TextStyle(color: Colors.white38),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //   );
-  // }
-
-  void _showPlayerDetails(Map<String, dynamic> player) async {
-    // Reuse your existing getAllTransactions() function
-    final allTransactions = await _dbHelper.getAllTransactions();
-
-    // Filter for only this player's transactions
-    final playerHistory =
-        allTransactions.where((t) => t['target_id'] == player['id']).toList();
-
-    final approved =
-        playerHistory.where((t) => t['status'] == 'APPROVED').toList();
-    final rejected =
-        playerHistory.where((t) => t['status'] == 'REJECTED').toList();
-    final pending =
-        playerHistory.where((t) => t['status'] == 'PENDING').toList();
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: const Color(
-              0xFF1E293B,
-            ), // Dark theme for projector
-            title: Text(
-              player['name'],
-              style: const TextStyle(color: Colors.white, fontSize: 28),
-            ),
-            content: SizedBox(
-              width: 400,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Team: ${player['teamName']}",
-                    style: const TextStyle(color: Colors.amber, fontSize: 18),
-                  ),
-                  Text(
-                    "Member ID: ${player['id']}",
-                    style: const TextStyle(color: Colors.white54),
-                  ),
-                  const Divider(color: Colors.white24, height: 30),
-
-                  const Text(
-                    "TOTAL POINTS",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  Text(
-                    "${player['totalScore'] ?? 0} pts",
-                    style: TextStyle(
-                      color:
-                          player['totalScore'] >= 0
-                              ? Colors.greenAccent
-                              : Colors.redAccent,
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Text(
-                    "RECENT TRANSACTIONS",
-                    style: TextStyle(
-                      color: Colors.amber,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Show recent history using your existing transaction data
-                  // 1. Remove the .map() and .toList() entirely.
-                  // 2. Just use one Expanded containing one ListView.
-                  Expanded(
-                    child: ListView(
-                      // Use a main ListView to make the whole thing scrollable
-                      children: [
-                        if (pending.isNotEmpty)
-                          _buildGroupSection("Pending", pending, Colors.orange),
-                        if (approved.isNotEmpty)
-                          _buildGroupSection(
-                            "Approved",
-                            approved,
-                            Colors.greenAccent,
-                          ),
-                        if (rejected.isNotEmpty)
-                          _buildGroupSection(
-                            "Rejected",
-                            rejected,
-                            Colors.redAccent,
-                          ),
-                        if (playerHistory.isEmpty)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text(
-                                "No history found",
-                                style: TextStyle(color: Colors.white24),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 24.0),
+          child: Row(
+            children: [
+              Text(
+                "#${index + 1}",
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: index < 3 ? Colors.indigoAccent : Colors.white24,
+                ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "CLOSE",
-                  style: TextStyle(color: Colors.amber),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      player['name'] ?? 'Unknown',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      player['teamName'] ?? 'No Team',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                "${player['totalScore'] ?? 0}",
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white70,
                 ),
               ),
             ],
           ),
-    );
-  }
-
-  Widget _buildGroupSection(
-    String title,
-    List<Map<String, dynamic>> items,
-    Color color,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        // We use a Column here instead of a ListView.builder because
-        // the parent is already a scrollable ListView.
-        ...items.map(
-          (t) => Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 50,
-                  child: Text(
-                    "${t['points']}",
-                    style: TextStyle(
-                      color:
-                          (t['points'] ?? 0) < 0
-                              ? Colors.redAccent
-                              : Colors.greenAccent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "${t['tag'] ?? 'Points'}",
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ),
-                Text(
-                  "${t['timestamp']?.toString().split(' ')[0]}",
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const Divider(color: Colors.white10),
-      ],
+        ).animate().fadeIn(delay: (400 + index * 50).ms).slideX(begin: 0.1, end: 0);
+      },
     );
   }
 }
