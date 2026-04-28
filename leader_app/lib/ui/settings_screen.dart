@@ -24,8 +24,8 @@ class SettingsScreen extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDark 
-                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+            colors: isDark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
                 : [AppTheme.lightBg, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -55,7 +55,8 @@ class SettingsScreen extends StatelessWidget {
                       iconColor: Colors.red,
                       title: loc.translate('delete_account'),
                       titleColor: Colors.red,
-                      onTap: () => _showDeleteConfirmation(context, settings, loc),
+                      onTap: () =>
+                          _showDeleteConfirmation(context, settings, loc),
                     ),
                   ],
                 ),
@@ -68,25 +69,38 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     SwitchListTile(
                       secondary: Icon(
-                        settings.themeMode == ThemeMode.dark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                        settings.themeMode == ThemeMode.dark
+                            ? Icons.dark_mode_rounded
+                            : Icons.light_mode_rounded,
                         color: Colors.amber,
                       ),
                       title: Text(loc.translate('dark_mode')),
                       value: settings.themeMode == ThemeMode.dark,
                       onChanged: (bool value) {
-                        settings.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
+                        settings.setThemeMode(
+                          value ? ThemeMode.dark : ThemeMode.light,
+                        );
                       },
                     ),
                     _buildDivider(isDark),
                     ListTile(
-                      leading: const Icon(Icons.translate_rounded, color: Colors.green),
+                      leading: const Icon(
+                        Icons.translate_rounded,
+                        color: Colors.green,
+                      ),
                       title: Text(loc.translate('language')),
                       trailing: DropdownButton<String>(
                         value: settings.locale.languageCode,
                         underline: const SizedBox(),
                         items: [
-                          DropdownMenuItem(value: 'en', child: Text(loc.translate('english'))),
-                          DropdownMenuItem(value: 'ar', child: Text(loc.translate('arabic'))),
+                          DropdownMenuItem(
+                            value: 'en',
+                            child: Text(loc.translate('english')),
+                          ),
+                          DropdownMenuItem(
+                            value: 'ar',
+                            child: Text(loc.translate('arabic')),
+                          ),
                         ],
                         onChanged: (String? value) {
                           if (value != null) settings.setLocale(Locale(value));
@@ -101,11 +115,16 @@ class SettingsScreen extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.format_size_rounded, color: Colors.purple),
+                              const Icon(
+                                Icons.format_size_rounded,
+                                color: Colors.purple,
+                              ),
                               const SizedBox(width: 16),
                               Text(loc.translate('font_size')),
                               const Spacer(),
-                              Text("${(settings.fontSizeFactor * 100).toInt()}%"),
+                              Text(
+                                "${(settings.fontSizeFactor * 100).toInt()}%",
+                              ),
                             ],
                           ),
                           Slider(
@@ -114,7 +133,8 @@ class SettingsScreen extends StatelessWidget {
                             max: 1.5,
                             divisions: 7,
                             activeColor: AppTheme.primary,
-                            onChanged: (value) => settings.setFontSizeFactor(value),
+                            onChanged: (value) =>
+                                settings.setFontSizeFactor(value),
                           ),
                         ],
                       ),
@@ -126,7 +146,10 @@ class SettingsScreen extends StatelessWidget {
               Center(
                 child: Text(
                   "Version 1.0.0 Premium",
-                  style: TextStyle(color: isDark ? Colors.white24 : Colors.black26, fontSize: 12),
+                  style: TextStyle(
+                    color: isDark ? Colors.white24 : Colors.black26,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -144,7 +167,9 @@ class SettingsScreen extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.black38,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white38
+              : Colors.black38,
           letterSpacing: 1.5,
         ),
       ),
@@ -180,9 +205,13 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Widget _buildDivider(bool isDark) {
-    return Divider(height: 1, color: isDark ? Colors.white10 : Colors.black12, indent: 16, endIndent: 16);
+    return Divider(
+      height: 1,
+      color: isDark ? Colors.white10 : Colors.black12,
+      indent: 16,
+      endIndent: 16,
+    );
   }
-
 
   void _showEditNameDialog(
     BuildContext context,
@@ -235,13 +264,17 @@ class SettingsScreen extends StatelessWidget {
           ),
           PremiumButton(
             label: loc.translate('delete'),
-            gradient: const LinearGradient(colors: [Colors.red, Colors.redAccent]),
+            gradient: const LinearGradient(
+              colors: [Colors.red, Colors.redAccent],
+            ),
             onPressed: () async {
               final auth = context.read<AuthProvider>();
               await settings.deleteAccount();
               auth.logout();
               if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/scanner', (route) => false);
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/scanner', (route) => false);
               }
             },
           ),
@@ -250,4 +283,3 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
-

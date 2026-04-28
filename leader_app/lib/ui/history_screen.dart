@@ -39,8 +39,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDark 
-                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+            colors: isDark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
                 : [AppTheme.lightBg, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -66,7 +66,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary)),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+            ),
             const SizedBox(height: 24),
             Text(loc.translate('loading')),
           ],
@@ -80,11 +82,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.redAccent,
+                  size: 64,
+                ),
                 const SizedBox(height: 24),
                 Text(
                   loc.translate('oops_something_wrong'),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -112,9 +121,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history_rounded, size: 80, color: AppTheme.primary.withOpacity(0.2)),
+            Icon(
+              Icons.history_rounded,
+              size: 80,
+              color: AppTheme.primary.withOpacity(0.2),
+            ),
             const SizedBox(height: 24),
-            Text(loc.translate('no_scores_yet'), style: const TextStyle(color: Colors.grey, fontSize: 16)),
+            Text(
+              loc.translate('no_scores_yet'),
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
+            ),
           ],
         ),
       );
@@ -190,68 +206,193 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
           ),
         ),
-        ...items.map((item) => Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: PremiumCard(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${item['points'] > 0 ? "+" : ""}${item['points']}',
-                      style: TextStyle(color: color, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        ...items
+            .map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: PremiumCard(
+                  onTap: () => _showTransactionDetails(context, item),
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
                     children: [
-                      Text(
-                        item['memberName'] ?? loc.translate('unknown_member'),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${item['tag']}',
-                        style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13),
-                      ),
-                      if (item['description'] != null && item['description'].toString().isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          item['description'],
-                          style: TextStyle(
-                            color: isDark ? Colors.white38 : Colors.black45,
-                            fontStyle: FontStyle.italic,
-                            fontSize: 12,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          shape: BoxShape.circle,
                         ),
-                      ],
+                        child: Center(
+                          child: Text(
+                            '${item['points'] > 0 ? "+" : ""}${item['points']}',
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['memberName'] ??
+                                  loc.translate('unknown_member'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${item['tag']}',
+                              style: TextStyle(
+                                color: isDark ? Colors.white60 : Colors.black54,
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (item['description'] != null &&
+                                item['description'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                item['description'],
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white38
+                                      : Colors.black45,
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Text(
+                        item['timestamp'].toString().length >= 16
+                            ? item['timestamp'].toString().substring(11, 16)
+                            : "",
+                        style: TextStyle(
+                          color: isDark ? Colors.white30 : Colors.black26,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Text(
-                  item['timestamp'].toString().length >= 16 
-                    ? item['timestamp'].toString().substring(11, 16)
-                    : "",
-                  style: TextStyle(color: isDark ? Colors.white30 : Colors.black26, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        )).toList(),
+              ),
+            )
+            .toList(),
       ],
     ).animate().fadeIn(duration: 500.ms).slideX(begin: 0.05, end: 0);
   }
 }
 
+void _showTransactionDetails(BuildContext context, Map<String, dynamic> t) {
+  final points = t['points'] ?? 0;
+  final isPositive = points >= 0;
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: const Text('Transaction Details'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildDetailTile(
+            Icons.person_outline,
+            'Member',
+            t['memberName'] ?? 'Unknown',
+          ),
+          _buildDetailTile(
+            Icons.stars_rounded,
+            'Points',
+            '${isPositive ? "+" : ""}$points',
+            valueColor: isPositive ? Colors.greenAccent : Colors.redAccent,
+          ),
+          _buildDetailTile(Icons.label_outline, 'Category', t['tag'] ?? 'N/A'),
+          _buildDetailTile(
+            Icons.badge_outlined,
+            'Submitted By',
+            t['leaderName'] ?? 'Unknown Leader',
+          ),
+          _buildDetailTile(
+            Icons.access_time,
+            'Timestamp',
+            t['timestamp'].toString(),
+          ),
+          _buildDetailTile(
+            Icons.info_outline,
+            'Status',
+            t['status'] ?? 'N/A',
+            valueColor: t['status'] == 'APPROVED'
+                ? Colors.greenAccent
+                : t['status'] == 'REJECTED'
+                ? Colors.redAccent
+                : Colors.orange,
+          ),
+          if (t['description'] != null &&
+              t['description'].toString().isNotEmpty) ...[
+            const Divider(height: 24),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Note: ${t['description']}',
+                style: const TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildDetailTile(
+  IconData icon,
+  String label,
+  String value, {
+  Color? valueColor,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.indigoAccent),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: valueColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
