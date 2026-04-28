@@ -2,15 +2,23 @@ import 'package:admin_app/database/db_helper.dart';
 import 'package:admin_app/server/tournament_server.dart';
 import 'package:admin_app/ui/my_home_page.dart';
 import 'package:admin_app/theme/app_theme.dart';
-import 'package:admin_app/theme/theme_service.dart';
+import 'package:admin_app/providers/settings_provider.dart';
+import 'package:admin_app/utils/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   DatabaseHelper().database; // Initialize the database
   final server = TournamentServer();
   await server.start();
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => SettingsProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -18,18 +26,37 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: ThemeService.instance,
-      builder: (context, _) {
-        return MaterialApp(
-          title: 'Tournament Admin',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeService.instance.themeMode,
-          home: const MyHomePage(),
+    final settings = Provider.of<SettingsProvider>(context);
+
+    return MaterialApp(
+      title: 'Tournament Admin',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: settings.themeMode,
+      locale: settings.locale,
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(settings.fontSizeFactor)),
+          child: Directionality(
+            textDirection:
+                settings.locale.languageCode == 'ar'
+                    ? TextDirection.rtl
+                    : TextDirection.ltr,
+            child: child!,
+          ),
         );
       },
+      home: const MyHomePage(),
     );
   }
 }

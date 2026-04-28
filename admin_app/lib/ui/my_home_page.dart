@@ -1,12 +1,14 @@
 import 'package:admin_app/database/db_helper.dart';
 import 'package:admin_app/server/dashboard_notifier.dart';
-import 'package:admin_app/theme/theme_service.dart';
+import 'package:admin_app/providers/settings_provider.dart';
+import 'package:admin_app/utils/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin_app/ui/projector_screen.dart';
 import 'package:admin_app/ui/review_screen.dart';
-import 'package:admin_app/ui/setup_screen.dart';
+import 'package:admin_app/ui/settings_screen.dart';
 import 'package:admin_app/ui/admin_history_screen.dart';
 import 'package:admin_app/ui/all_players_screen.dart';
 import 'package:admin_app/ui/connection_screen.dart';
@@ -45,18 +47,10 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Tournament Admin"),
-        actions: [
-          IconButton(
-            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-            onPressed: () => ThemeService.instance.toggleTheme(),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: AppBar(title: Text(loc.translate("tournament_admin"))),
       body: StreamBuilder<void>(
         stream: DashboardNotifier.instance.onUpdate,
         builder: (context, _) {
@@ -71,6 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     'pendingLeaders': 0,
                     'approvedLeaders': 0,
                     'totalMembers': 0,
+                    'onlineLeadersList': [],
                   };
 
               return RefreshIndicator(
@@ -87,76 +82,81 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildHeader(isDark),
+                              _buildHeader(isDark, loc),
                               const SizedBox(height: 32),
-                              _buildLiveStats(stats, isDark),
+                              _buildLiveStats(stats, isDark, loc),
                               const SizedBox(height: 32),
                               _buildOnlineLeadersSection(
                                 stats['onlineLeadersList']
                                     as List<Map<String, dynamic>>?,
                                 isDark,
+                                loc,
                               ),
                               const SizedBox(height: 40),
-                              _buildSectionTitle("Active Operations"),
+                              _buildSectionTitle(
+                                loc.translate("active_operations"),
+                              ),
                               const SizedBox(height: 16),
                               _buildGrid([
                                 _DashCard(
-                                  "Review Scores",
+                                  loc.translate("review_scores"),
                                   Icons.rate_review_rounded,
                                   Colors.blue,
                                   () => const ReviewScreen(),
                                 ),
                                 _DashCard(
-                                  "Leader Approval",
+                                  loc.translate("leader_approval"),
                                   Icons.verified_user_rounded,
                                   Colors.orange,
                                   () => const LeaderApprovalScreen(),
                                 ),
                                 _DashCard(
-                                  "Full Control",
+                                  loc.translate("full_control"),
                                   Icons.terminal_rounded,
                                   Colors.blueGrey,
                                   () => const FullControlScreen(),
                                 ),
                               ]),
                               const SizedBox(height: 32),
-                              _buildSectionTitle("Monitoring & Data"),
+                              _buildSectionTitle(
+                                loc.translate("monitoring_data"),
+                              ),
                               const SizedBox(height: 16),
                               _buildGrid([
                                 _DashCard(
-                                  "Leaderboard",
+                                  loc.translate("leaderboard"),
                                   Icons.leaderboard_rounded,
                                   Colors.purple,
                                   () => LeaderboardScreen(),
                                 ),
                                 _DashCard(
-                                  "Transactions",
+                                  loc.translate("transactions"),
                                   Icons.receipt_long_rounded,
                                   Colors.teal,
                                   () => const AdminHistoryScreen(),
                                 ),
                                 _DashCard(
-                                  "Projector View",
+                                  loc.translate("projector_view"),
                                   Icons.monitor_rounded,
                                   Colors.indigo,
                                   () => const ProjectorStatsScreen(),
                                 ),
                               ]),
                               const SizedBox(height: 32),
-                              _buildSectionTitle("System Setup"),
+                              _buildSectionTitle(loc.translate("system_setup")),
                               const SizedBox(height: 16),
                               _buildGrid([
                                 _DashCard(
-                                  "QR Connection",
+                                  loc.translate("qr_connection"),
                                   Icons.qr_code_2_rounded,
                                   Colors.blueGrey,
                                   () => ConnectionScreen(),
                                 ),
                                 _DashCard(
-                                  "Settings",
+                                  loc.translate("settings"),
                                   Icons.settings_suggest_rounded,
                                   Colors.blueGrey,
-                                  () => const SetupScreen(),
+                                  () => const SettingsScreen(),
                                 ),
                               ]),
                               const SizedBox(height: 40),
@@ -176,32 +176,36 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(bool isDark, AppLocalizations loc) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Welcome Back,",
+          loc.translate("welcome_back"),
           style: TextStyle(
             fontSize: 16,
             color: isDark ? Colors.white70 : Colors.black54,
           ),
         ),
-        const Text(
-          "Dashboard Overview",
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        Text(
+          loc.translate("dashboard_overview"),
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
         ),
       ],
     );
   }
 
-  Widget _buildLiveStats(Map<String, dynamic> stats, bool isDark) {
+  Widget _buildLiveStats(
+    Map<String, dynamic> stats,
+    bool isDark,
+    AppLocalizations loc,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 600;
 
         final pendingCard = _buildStatItem(
-          "Pending Points",
+          loc.translate("pending_points"),
           stats['pendingTx'].toString(),
           Icons.auto_graph_rounded,
           Colors.orange,
@@ -209,7 +213,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
 
         final totalCard = _buildStatItem(
-          "Total Players",
+          loc.translate("total_players"),
           stats['totalMembers'].toString(),
           Icons.people_alt_rounded,
           Colors.blue,
@@ -217,7 +221,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
 
         final onlineCard = _buildStatItem(
-          "Online Leaders",
+          loc.translate("online_leaders"),
           stats['onlineLeaders'].toString(),
           Icons.wifi_tethering_rounded,
           Colors.teal,
@@ -250,6 +254,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildOnlineLeadersSection(
     List<Map<String, dynamic>>? leaders,
     bool isDark,
+    AppLocalizations loc,
   ) {
     if (leaders == null || leaders.isEmpty) {
       return const SizedBox.shrink();
@@ -273,7 +278,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             const SizedBox(width: 8),
-            _buildSectionTitle("Online Leaders"),
+            _buildSectionTitle(loc.translate("online_leaders")),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -334,7 +339,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             fontSize: 14,
                           ),
                         ),
-                        const Row(
+                        Row(
                           children: [
                             Icon(
                               Icons.circle,
@@ -343,8 +348,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                             SizedBox(width: 4),
                             Text(
-                              "Active now",
-                              style: TextStyle(
+                              loc.translate("active_now"),
+                              style: const TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey,
                               ),

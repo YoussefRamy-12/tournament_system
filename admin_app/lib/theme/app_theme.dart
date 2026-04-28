@@ -87,6 +87,12 @@ class AppTheme {
     letterSpacing: 0,
   );
 
+  static TextStyle get headline20 => GoogleFonts.plusJakartaSans(
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+  );
+
   static TextStyle get title18 => GoogleFonts.plusJakartaSans(
     fontSize: 18,
     fontWeight: FontWeight.w600,
