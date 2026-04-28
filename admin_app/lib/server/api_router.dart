@@ -51,6 +51,7 @@ class ApiRouter {
         'target_id': data['targetId'],
         'points': data['points'],
         'tag': data['tag'],
+        'description': data['description'],
         'status': 'PENDING',
         'timestamp': data['timestamp'],
       });
