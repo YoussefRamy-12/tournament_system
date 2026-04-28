@@ -27,20 +27,19 @@ class ApiClient {
     final leaderId = await _connection.getOrGenerateLeaderId();
 
     if (baseUrl == null) {
-      print("⚠️ WS: Cannot connect, baseUrl or leaderId is null");
+      print("⚠️ WS: Cannot connect, baseUrl is null");
+      _isConnecting = false;
       return;
     }
 
     // Convert http://ip:port to ws://ip:port/ws
-    // Ensure we don't end up with double slashes
     String cleanBase = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
         : baseUrl;
     final wsUrl = '${cleanBase.replaceFirst('http', 'ws')}/ws';
 
     try {
-      print("🔌 WS: Attempting connection to: $wsUrl");
-      // Add a timeout to the connection attempt
+      print("🔌 WS: Connecting to $wsUrl...");
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
       _channel!.stream.listen(
@@ -48,28 +47,24 @@ class ApiClient {
           try {
             final data = jsonDecode(message);
             if (data['status'] == 'connected') {
+              print("🔌 WS: Handshake successful, sending ID...");
+              _channel!.sink.add(leaderId);
               if (!isOnline.value) isOnline.value = true;
-              print("🔌 WS: Handshake successful");
             }
           } catch (e) {
-            // If it's not JSON (like a 'pong' or 'ping'), we still count it as online
+            // Non-JSON message? Still count as online if we received something
             if (!isOnline.value) isOnline.value = true;
           }
         },
         onDone: () {
-          print("🔌 WS: Connection closed for $wsUrl");
+          print("🔌 WS: Connection closed by server ($wsUrl)");
           isOnline.value = false;
           _isConnecting = false;
           _stopHeartbeat();
           _reconnect();
         },
         onError: (error) {
-          String errorMessage = error.toString();
-          if (error is Exception && errorMessage.contains("113")) {
-            errorMessage =
-                "No route to host (check if on same Wi-Fi and Firewall is open)";
-          }
-          print("🔌 WS: Connection error for $wsUrl: $errorMessage");
+          print("🔌 WS: Connection error ($wsUrl): $error");
           isOnline.value = false;
           _isConnecting = false;
           _stopHeartbeat();
@@ -77,15 +72,11 @@ class ApiClient {
         },
       );
 
-      // Send leaderId as first message
-      _channel!.sink.add(leaderId);
       _isConnecting = false;
-      print("🔌 WS: Attached listener to $wsUrl (waiting for handshake...)");
-
-      // Start a heartbeat to keep connection alive
+      // Start heartbeat timer
       _startHeartbeat();
     } catch (e) {
-      print("🔌 WS: Unexpected connection failed for $wsUrl: $e");
+      print("🔌 WS: Setup failed for $wsUrl: $e");
       isOnline.value = false;
       _isConnecting = false;
       _reconnect();

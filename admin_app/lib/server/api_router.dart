@@ -175,34 +175,41 @@ class ApiRouter {
       webSocketHandler((WebSocketChannel webSocket) {
         String? currentLeaderId;
         print('🌐 WS: New connection attempt');
-        // Send immediate handshake so client knows it's truly connected
+        
+        // Track as unauthenticated initially
+        OnlineLeaderTracker.instance.trackUnauthenticated(webSocket);
+
+        // Send immediate handshake
         webSocket.sink.add(jsonEncode({'status': 'connected'}));
 
         webSocket.stream.listen(
           (message) {
-            if (currentLeaderId == null && message is String) {
-              // First message is the leaderId
+            if (currentLeaderId == null && message is String && message != "ping") {
               currentLeaderId = message;
               OnlineLeaderTracker.instance.addConnection(
                 currentLeaderId!,
-                webSocket.sink,
+                webSocket,
               );
-              print('📱 Leader connected: $currentLeaderId');
+              print('📱 WebSocket Auth: Leader identified as $currentLeaderId');
             } else {
-              // Any message from the client (including "ping") acts as a heartbeat
-              OnlineLeaderTracker.instance.recordPing(webSocket.sink);
+              // Heartbeat
+              OnlineLeaderTracker.instance.recordPing(currentLeaderId, webSocket);
               if (message != "ping") {
-                print('📨 Message from $currentLeaderId: $message');
+                print('📨 WS Message from $currentLeaderId: $message');
               }
             }
           },
           onDone: () {
-            print('📱 WebSocket closed for $currentLeaderId');
-            OnlineLeaderTracker.instance.removeConnectionBySink(webSocket.sink);
+            if (currentLeaderId != null) {
+              print('📱 WebSocket Closed: $currentLeaderId');
+            } else {
+              print('📱 WebSocket Closed: Unknown leader');
+            }
+            OnlineLeaderTracker.instance.removeChannel(webSocket, currentLeaderId);
           },
           onError: (error) {
-            print('📱 WebSocket error for $currentLeaderId: $error');
-            OnlineLeaderTracker.instance.removeConnectionBySink(webSocket.sink);
+            print('📱 WebSocket Error ($currentLeaderId): $error');
+            OnlineLeaderTracker.instance.removeChannel(webSocket, currentLeaderId);
           },
         );
       }),
