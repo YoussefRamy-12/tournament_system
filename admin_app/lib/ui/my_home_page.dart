@@ -81,7 +81,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     horizontal: 24.0,
                     vertical: 20,
                   ),
-                  child: Column(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1200),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildHeader(isDark),
@@ -156,6 +159,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       .animate()
                       .fadeIn(duration: 600.ms)
                       .slideY(begin: 0.05, end: 0),
+                    ),
+                  ),
                 ),
               );
             },
@@ -185,28 +190,46 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildLiveStats(Map<String, dynamic> stats, bool isDark) {
-    return Row(
-      children: [
-        _buildStatItem(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
+
+        final pendingCard = _buildStatItem(
           "Pending Points",
           stats['pendingTx'].toString(),
           Icons.auto_graph_rounded,
           Colors.orange,
           () => const ReviewScreen(),
-        ),
-        const SizedBox(width: 16),
-        _buildStatItem(
+        );
+
+        final totalCard = _buildStatItem(
           "Total Players",
           stats['totalMembers'].toString(),
           Icons.people_alt_rounded,
           Colors.blue,
           () => const AllPlayersScreen(),
-        ),
-      ],
-    ).animate().scale(
-      delay: 200.ms,
-      duration: 400.ms,
-      curve: Curves.easeOutBack,
+        );
+
+        return (isNarrow
+            ? Column(
+                children: [
+                  pendingCard,
+                  const SizedBox(height: 16),
+                  totalCard,
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: pendingCard),
+                  const SizedBox(width: 16),
+                  Expanded(child: totalCard),
+                ],
+              )).animate().scale(
+          delay: 200.ms,
+          duration: 400.ms,
+          curve: Curves.easeOutBack,
+        );
+      },
     );
   }
 
@@ -218,52 +241,50 @@ class _MyHomePageState extends State<MyHomePage> {
     Widget Function() destination,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Expanded(
-      child: GestureDetector(
-        onTap:
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => destination()),
-            ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: isDark ? 0.15 : 0.1),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: color.withValues(alpha: isDark ? 0.3 : 0.2),
-              width: 1.5,
-            ),
+    return GestureDetector(
+      onTap:
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => destination()),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.white60 : Colors.black54,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: isDark ? 0.15 : 0.1),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: color.withValues(alpha: isDark ? 0.3 : 0.2),
+            width: 1.5,
           ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white60 : Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -283,10 +304,17 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildGrid(List<Widget> children) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        int crossAxisCount = 2;
+        if (constraints.maxWidth > 900) {
+          crossAxisCount = 4;
+        } else if (constraints.maxWidth > 600) {
+          crossAxisCount = 3;
+        }
+
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: constraints.maxWidth > 600 ? 4 : 3,
+          crossAxisCount: crossAxisCount,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           childAspectRatio: 0.85,

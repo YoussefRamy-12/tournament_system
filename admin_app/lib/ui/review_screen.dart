@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../database/db_helper.dart';
+import '../theme/app_theme.dart';
+import '../components/app_components.dart';
 
 class ReviewScreen extends StatefulWidget {
   const ReviewScreen({super.key});
@@ -20,7 +22,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
         SnackBar(
           content: Text('Transaction $status'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: AppTheme.getStatusColor(status),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
         ),
       );
     }
@@ -32,25 +36,31 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     if (!mounted) return;
     bool confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('$status All?'),
-        content: Text('Are you sure you want to $status all $count pending requests?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
+            title: Text('$status All?'),
+            content: Text(
+                'Are you sure you want to $status all $count pending requests?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: status == 'APPROVED'
+                      ? AppTheme.successColor
+                      : AppTheme.errorColor,
+                ),
+                child: Text('Yes, $status All'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: status == 'APPROVED' ? Colors.green : Colors.red,
-            ),
-            child: Text('Yes, $status All'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
     if (confirm) {
       await _dbHelper.updateAllPendingStatus(status);
@@ -60,6 +70,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
           SnackBar(
             content: Text('All requests $status'),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.getStatusColor(status),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
           ),
         );
       }
@@ -68,8 +81,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -77,15 +89,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
         actions: [
           IconButton(
             tooltip: 'Approve All',
-            icon: const Icon(Icons.done_all_rounded, color: Colors.green),
+            icon: Icon(Icons.done_all_rounded, color: AppTheme.successColor),
             onPressed: () => _handleMassAction('APPROVED'),
           ),
           IconButton(
             tooltip: 'Reject All',
-            icon: const Icon(Icons.remove_done_rounded, color: Colors.red),
+            icon: Icon(Icons.remove_done_rounded, color: AppTheme.errorColor),
             onPressed: () => _handleMassAction('REJECTED'),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTheme.spaceSm),
         ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -97,128 +109,105 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
           final items = snapshot.data!;
           if (items.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle_outline_rounded, size: 64, color: isDark ? Colors.white24 : Colors.black12),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No pending scores to review.',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: isDark ? Colors.white60 : Colors.black45,
-                    ),
-                  ),
-                ],
-              ).animate().fadeIn().scale(),
+            return EmptyState(
+              icon: Icons.check_circle_outline_rounded,
+              message: 'All Caught Up!',
+              subtitle: 'No pending scores to review.',
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return _buildReviewCard(item, isDark, theme)
-                .animate()
-                .fadeIn(delay: (index * 50).ms)
-                .slideX(begin: 0.1, end: 0);
-            },
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spaceMd, vertical: AppTheme.spaceMd),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return _buildReviewCard(item, isDark)
+                      .animate()
+                      .fadeIn(delay: (index * 40).ms)
+                      .slideX(begin: 0.05, end: 0);
+                },
+              ),
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildReviewCard(Map<String, dynamic> item, bool isDark, ThemeData theme) {
+  Widget _buildReviewCard(Map<String, dynamic> item, bool isDark) {
     final points = item['points'] ?? 0;
     final isPositive = points >= 0;
+    final color = isPositive ? AppTheme.successColor : AppTheme.errorColor;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
-        ),
-        boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+      margin: const EdgeInsets.only(bottom: AppTheme.spaceMd),
+      child: AppCard(
+        onTap: () => _showDetailsDialog(context, item),
+        padding: const EdgeInsets.all(AppTheme.spaceMd),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+              ),
+              child: Center(
+                child: Text(
+                  '${isPositive ? "+" : ""}$points',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
             ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _showDetailsDialog(context, item),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
+            const SizedBox(width: AppTheme.spaceMd),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: (isPositive ? Colors.green : Colors.red).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(16),
+                  Text(
+                    item['memberName'] ?? 'Unknown Member',
+                    style: AppTheme.title18.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppTheme.darkTextColor : AppTheme.lightTextColor,
                     ),
-                    child: Center(
+                  ),
+                  const SizedBox(height: AppTheme.spaceXs),
+                  Text(
+                    '${item['tag']} • ${item['leaderName'] ?? "Unknown"}',
+                    style: AppTheme.caption14.copyWith(
+                      color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor,
+                    ),
+                  ),
+                  if (item['description'] != null &&
+                      item['description'].toString().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppTheme.spaceXs),
                       child: Text(
-                        '${isPositive ? "+" : ""}$points',
-                        style: TextStyle(
-                          color: isPositive ? Colors.greenAccent : Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                        item['description'],
+                        style: AppTheme.label12.copyWith(
+                          color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor,
+                          fontStyle: FontStyle.italic,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['memberName'] ?? 'Unknown Member',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${item['tag']} • ${item['leaderName'] ?? "Unknown"}',
-                          style: TextStyle(
-                            color: isDark ? Colors.white60 : Colors.black54,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (item['description'] != null && item['description'].toString().isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              item['description'],
-                              style: TextStyle(
-                                color: isDark ? Colors.white38 : Colors.black38,
-                                fontStyle: FontStyle.italic,
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
                 ],
               ),
             ),
-          ),
+            Icon(Icons.chevron_right_rounded,
+                color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor,
+                size: 20),
+          ],
         ),
       ),
     );
@@ -227,70 +216,91 @@ class _ReviewScreenState extends State<ReviewScreen> {
   void _showDetailsDialog(BuildContext context, Map<String, dynamic> item) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Transaction Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildDetailTile(Icons.person_outline, 'Member', item['memberName'] ?? 'Unknown'),
-            _buildDetailTile(Icons.stars_rounded, 'Points', '${item['points']}'),
-            _buildDetailTile(Icons.label_outline, 'Category', item['tag'] ?? 'N/A'),
-            _buildDetailTile(Icons.badge_outlined, 'Submitted By', item['leaderName'] ?? 'Unknown Leader'),
-            _buildDetailTile(Icons.access_time, 'Timestamp', item['timestamp'].toString()),
-            if (item['description'] != null && item['description'].toString().isNotEmpty) ...[
-              const Divider(height: 24),
-              Text(
-                'Note: ${item['description']}',
-                style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          Row(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
+          title: const Text('Review Transaction'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () {
-                    _handleAction(item['id'], 'REJECTED');
-                    Navigator.pop(context);
-                  },
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text('Reject'),
+              _buildDetailTile(
+                  Icons.person_outline, 'Member', item['memberName'] ?? 'Unknown', isDark),
+              _buildDetailTile(Icons.stars_rounded, 'Points', '${item['points']}', isDark),
+              _buildDetailTile(Icons.label_outline, 'Category', item['tag'] ?? 'N/A', isDark),
+              _buildDetailTile(Icons.badge_outlined, 'Submitted By',
+                  item['leaderName'] ?? 'Unknown Leader', isDark),
+              _buildDetailTile(Icons.access_time, 'Timestamp',
+                  item['timestamp'].toString(), isDark),
+              if (item['description'] != null &&
+                  item['description'].toString().isNotEmpty) ...[
+                const Divider(height: 24),
+                Text(
+                  'Note: ${item['description']}',
+                  style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    _handleAction(item['id'], 'APPROVED');
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text('Approve'),
-                ),
-              ),
+              ],
             ],
           ),
-        ],
-      ),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      _handleAction(item['id'], 'REJECTED');
+                      Navigator.pop(context);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.errorColor,
+                      side: BorderSide(color: AppTheme.errorColor),
+                    ),
+                    child: const Text('Reject'),
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spaceSm),
+                Expanded(
+                  child: ActionButton(
+                    label: 'Approve',
+                    onPressed: () {
+                      _handleAction(item['id'], 'APPROVED');
+                      Navigator.pop(context);
+                    },
+                    type: ActionButtonType.primary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildDetailTile(IconData icon, String label, String value) {
+  Widget _buildDetailTile(IconData icon, String label, String value, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spaceSm),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.indigoAccent),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-            ],
+          Icon(icon, size: 20, color: AppTheme.primaryColor),
+          const SizedBox(width: AppTheme.spaceMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: AppTheme.caption14.copyWith(
+                        color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor)),
+                Text(value,
+                    style: AppTheme.body16.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppTheme.darkTextColor : AppTheme.lightTextColor)),
+              ],
+            ),
           ),
         ],
       ),
