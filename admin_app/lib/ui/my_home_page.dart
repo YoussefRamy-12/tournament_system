@@ -85,80 +85,86 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 1200),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeader(isDark),
-                          const SizedBox(height: 32),
-                          _buildLiveStats(stats, isDark),
-                          const SizedBox(height: 40),
-                          _buildSectionTitle("Active Operations"),
-                          const SizedBox(height: 16),
-                          _buildGrid([
-                            _DashCard(
-                              "Review Scores",
-                              Icons.rate_review_rounded,
-                              Colors.blue,
-                              () => const ReviewScreen(),
-                            ),
-                            _DashCard(
-                              "Leader Approval",
-                              Icons.verified_user_rounded,
-                              Colors.orange,
-                              () => const LeaderApprovalScreen(),
-                            ),
-                            _DashCard(
-                              "Full Control",
-                              Icons.terminal_rounded,
-                              Colors.blueGrey,
-                              () => const FullControlScreen(),
-                            ),
-                          ]),
-                          const SizedBox(height: 32),
-                          _buildSectionTitle("Monitoring & Data"),
-                          const SizedBox(height: 16),
-                          _buildGrid([
-                            _DashCard(
-                              "Leaderboard",
-                              Icons.leaderboard_rounded,
-                              Colors.purple,
-                              () => LeaderboardScreen(),
-                            ),
-                            _DashCard(
-                              "Transactions",
-                              Icons.receipt_long_rounded,
-                              Colors.teal,
-                              () => const AdminHistoryScreen(),
-                            ),
-                            _DashCard(
-                              "Projector View",
-                              Icons.monitor_rounded,
-                              Colors.indigo,
-                              () => const ProjectorStatsScreen(),
-                            ),
-                          ]),
-                          const SizedBox(height: 32),
-                          _buildSectionTitle("System Setup"),
-                          const SizedBox(height: 16),
-                          _buildGrid([
-                            _DashCard(
-                              "QR Connection",
-                              Icons.qr_code_2_rounded,
-                              Colors.blueGrey,
-                              () => ConnectionScreen(),
-                            ),
-                            _DashCard(
-                              "Settings",
-                              Icons.settings_suggest_rounded,
-                              Colors.blueGrey,
-                              () => const SetupScreen(),
-                            ),
-                          ]),
-                          const SizedBox(height: 40),
-                        ],
-                      )
-                      .animate()
-                      .fadeIn(duration: 600.ms)
-                      .slideY(begin: 0.05, end: 0),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildHeader(isDark),
+                              const SizedBox(height: 32),
+                              _buildLiveStats(stats, isDark),
+                              const SizedBox(height: 32),
+                              _buildOnlineLeadersSection(
+                                stats['onlineLeadersList']
+                                    as List<Map<String, dynamic>>?,
+                                isDark,
+                              ),
+                              const SizedBox(height: 40),
+                              _buildSectionTitle("Active Operations"),
+                              const SizedBox(height: 16),
+                              _buildGrid([
+                                _DashCard(
+                                  "Review Scores",
+                                  Icons.rate_review_rounded,
+                                  Colors.blue,
+                                  () => const ReviewScreen(),
+                                ),
+                                _DashCard(
+                                  "Leader Approval",
+                                  Icons.verified_user_rounded,
+                                  Colors.orange,
+                                  () => const LeaderApprovalScreen(),
+                                ),
+                                _DashCard(
+                                  "Full Control",
+                                  Icons.terminal_rounded,
+                                  Colors.blueGrey,
+                                  () => const FullControlScreen(),
+                                ),
+                              ]),
+                              const SizedBox(height: 32),
+                              _buildSectionTitle("Monitoring & Data"),
+                              const SizedBox(height: 16),
+                              _buildGrid([
+                                _DashCard(
+                                  "Leaderboard",
+                                  Icons.leaderboard_rounded,
+                                  Colors.purple,
+                                  () => LeaderboardScreen(),
+                                ),
+                                _DashCard(
+                                  "Transactions",
+                                  Icons.receipt_long_rounded,
+                                  Colors.teal,
+                                  () => const AdminHistoryScreen(),
+                                ),
+                                _DashCard(
+                                  "Projector View",
+                                  Icons.monitor_rounded,
+                                  Colors.indigo,
+                                  () => const ProjectorStatsScreen(),
+                                ),
+                              ]),
+                              const SizedBox(height: 32),
+                              _buildSectionTitle("System Setup"),
+                              const SizedBox(height: 16),
+                              _buildGrid([
+                                _DashCard(
+                                  "QR Connection",
+                                  Icons.qr_code_2_rounded,
+                                  Colors.blueGrey,
+                                  () => ConnectionScreen(),
+                                ),
+                                _DashCard(
+                                  "Settings",
+                                  Icons.settings_suggest_rounded,
+                                  Colors.blueGrey,
+                                  () => const SetupScreen(),
+                                ),
+                              ]),
+                              const SizedBox(height: 40),
+                            ],
+                          )
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .slideY(begin: 0.05, end: 0),
                     ),
                   ),
                 ),
@@ -210,26 +216,150 @@ class _MyHomePageState extends State<MyHomePage> {
           () => const AllPlayersScreen(),
         );
 
-        return (isNarrow
-            ? Column(
-                children: [
-                  pendingCard,
-                  const SizedBox(height: 16),
-                  totalCard,
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(child: pendingCard),
-                  const SizedBox(width: 16),
-                  Expanded(child: totalCard),
-                ],
-              )).animate().scale(
-          delay: 200.ms,
-          duration: 400.ms,
-          curve: Curves.easeOutBack,
+        final onlineCard = _buildStatItem(
+          "Online Leaders",
+          stats['onlineLeaders'].toString(),
+          Icons.wifi_tethering_rounded,
+          Colors.teal,
+          () => const LeaderApprovalScreen(),
         );
+
+        return (isNarrow
+                ? Column(
+                  children: [
+                    pendingCard,
+                    const SizedBox(height: 16),
+                    totalCard,
+                  ],
+                )
+                : Row(
+                  children: [
+                    Expanded(child: pendingCard),
+                    const SizedBox(width: 16),
+                    Expanded(child: totalCard),
+                    const SizedBox(width: 16),
+                    Expanded(child: onlineCard),
+                  ],
+                ))
+            .animate()
+            .scale(delay: 200.ms, duration: 400.ms, curve: Curves.easeOutBack);
       },
+    );
+  }
+
+  Widget _buildOnlineLeadersSection(
+    List<Map<String, dynamic>>? leaders,
+    bool isDark,
+  ) {
+    if (leaders == null || leaders.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.teal.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.wifi_tethering_rounded,
+                color: Colors.teal,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildSectionTitle("Online Leaders"),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.teal,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                "${leaders.length}",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: leaders.length,
+            itemBuilder: (context, index) {
+              final leader = leaders[index];
+              return Container(
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.teal.withValues(alpha: isDark ? 0.3 : 0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.teal,
+                      child: Icon(Icons.person, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          leader['name'] ?? 'Unknown',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.circle,
+                              color: Colors.tealAccent,
+                              size: 8,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              "Active now",
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.1);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -271,10 +401,7 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(height: 16),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text(
               label,

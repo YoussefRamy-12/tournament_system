@@ -341,6 +341,16 @@ class DatabaseHelper {
     final totalMemberCount = memberResult.first['total'] as int;
     // 4. Online Leaders
     final onlineCount = OnlineLeaderTracker.instance.onlineCount;
+    final onlineIds = OnlineLeaderTracker.instance.onlineLeaderIds;
+    List<Map<String, dynamic>> onlineLeadersList = [];
+    if (onlineIds.isNotEmpty) {
+      final placeholders = List.filled(onlineIds.length, '?').join(',');
+      onlineLeadersList = await db.query(
+        'leaders',
+        where: 'id IN ($placeholders)',
+        whereArgs: onlineIds,
+      );
+    }
 
     return {
       'pendingTx': pendingTransactionsCount,
@@ -348,6 +358,7 @@ class DatabaseHelper {
       'approvedLeaders': approvedLeaderCount,
       'totalMembers': totalMemberCount,
       'onlineLeaders': onlineCount,
+      'onlineLeadersList': onlineLeadersList,
     };
   }
 }
