@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:leader_app/ui/app_localizations.dart';
-import '../network/api_client.dart'; // Ensure this points to your client
+import 'package:leader_app/ui/widgets/premium_widgets.dart';
+import 'package:leader_app/ui/theme/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../network/api_client.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -106,12 +109,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: Text(loc.translate('my_scoring_requests'))),
-      body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        onRefresh: () => _loadData(isInitial: false),
-        child: _buildContent(),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(loc.translate('my_scoring_requests')),
+        backgroundColor: Colors.transparent,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark 
+                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+                : [AppTheme.lightBg, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: RefreshIndicator(
+            key: _refreshIndicatorKey,
+            onRefresh: () => _loadData(isInitial: false),
+            child: _buildContent(),
+          ),
+        ),
       ),
     );
   }
@@ -119,84 +141,61 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildContent() {
     final loc = AppLocalizations.of(context);
     if (_isLoading) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 200),
-          Center(child: CircularProgressIndicator()),
-        ],
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary)),
+            const SizedBox(height: 24),
+            Text(loc.translate('loading')),
+          ],
+        ),
       );
     } else if (_error != null) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.redAccent,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        loc.translate('oops_something_wrong'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        loc.translate('could_not_load_members'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.refresh),
-                        label: Text(loc.translate('try_again')),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                        // Identical UX: Trigger the refresh indicator
-                        onPressed: () =>
-                            _refreshIndicatorKey.currentState?.show(),
-                      ),
-                    ],
-                  ),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: PremiumCard(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
+                const SizedBox(height: 24),
+                Text(
+                  loc.translate('oops_something_wrong'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
+                const SizedBox(height: 12),
+                Text(
+                  loc.translate('could_not_load_members'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 32),
+                PremiumButton(
+                  label: loc.translate('try_again'),
+                  onPressed: () => _refreshIndicatorKey.currentState?.show(),
+                  icon: Icons.refresh_rounded,
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       );
     }
 
     final allRequests = _historyRequests ?? [];
 
     if (allRequests.isEmpty) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(child: Text(loc.translate('no_scores_yet'))),
-            ),
-          );
-        },
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history_rounded, size: 80, color: AppTheme.primary.withOpacity(0.2)),
+            const SizedBox(height: 24),
+            Text(loc.translate('no_scores_yet'), style: const TextStyle(color: Colors.grey, fontSize: 16)),
+          ],
+        ),
       );
     }
 
@@ -247,78 +246,88 @@ class _HistoryScreenState extends State<HistoryScreen> {
     IconData icon,
   ) {
     final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              status,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                status.toUpperCase(),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                  fontSize: 12,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: color.withValues(alpha: 0.3)),
-            borderRadius: BorderRadius.circular(12),
-            color: color.withValues(alpha: 0.02),
+            ],
           ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: items.length,
-            separatorBuilder: (context, index) =>
-                Divider(color: color.withValues(alpha: 0.1), height: 1),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return ListTile(
-                isThreeLine:
-                    item['description'] != null &&
-                    item['description'].toString().isNotEmpty,
-                title: Text(
-                  item['memberName'] ?? loc.translate('unknown_member'),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${item['tag']} • ${item['points'] > 0 ? "+" : ""}${item['points']} pts',
+        ),
+        ...items.map((item) => Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: PremiumCard(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${item['points'] > 0 ? "+" : ""}${item['points']}',
+                      style: TextStyle(color: color, fontWeight: FontWeight.bold),
                     ),
-                    if (item['description'] != null &&
-                        item['description'].toString().isNotEmpty)
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        item['description'],
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontStyle: FontStyle.italic,
-                          fontSize: 13,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        item['memberName'] ?? loc.translate('unknown_member'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        '${item['tag']}',
+                        style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13),
+                      ),
+                      if (item['description'] != null && item['description'].toString().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item['description'],
+                          style: TextStyle(
+                            color: isDark ? Colors.white38 : Colors.black45,
+                            fontStyle: FontStyle.italic,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                trailing: Text(
-                  item['timestamp'].toString().substring(
-                    11,
-                    16,
-                  ), // Shows "HH:mm"
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                Text(
+                  item['timestamp'].toString().substring(11, 16),
+                  style: TextStyle(color: isDark ? Colors.white30 : Colors.black26, fontSize: 12),
                 ),
-              );
-            },
+              ],
+            ),
           ),
-        ),
+        )).toList(),
       ],
-    );
+    ).animate().fadeIn(duration: 500.ms).slideX(begin: 0.05, end: 0);
   }
 }

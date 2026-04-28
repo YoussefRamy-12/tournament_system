@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:leader_app/ui/app_localizations.dart';
+import 'package:leader_app/ui/widgets/premium_widgets.dart';
+import 'package:leader_app/ui/theme/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../network/api_client.dart';
 import '../network/connection_manager.dart';
 
@@ -34,54 +37,108 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(loc.translate('scan_admin_qr'))),
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(loc.translate('scan_admin_qr'), style: const TextStyle(color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Stack(
         children: [
           MobileScanner(
             onDetect: (capture) async {
               if (_hasRegistered) {
-                // If already registered, do nothing on scan
-                MobileScannerController().stop();
-                dispose();
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/home',
-                  (route) => false,
-                );
+                Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
                 return;
               } else {
-                if (_hasScanned) {
-                  MobileScannerController().stop();
+                if (_hasScanned) return;
+                _hasScanned = true;
 
-                  return;
-                } else {
-                  _hasScanned = true;
-
-                  final List<Barcode> barcodes = capture.barcodes;
-                  if (barcodes.isNotEmpty) {
-                    final String? scannedUrl = barcodes.first.rawValue;
-                    _processUrl(scannedUrl);
-                  }
+                final List<Barcode> barcodes = capture.barcodes;
+                if (barcodes.isNotEmpty) {
+                  final String? scannedUrl = barcodes.first.rawValue;
+                  _processUrl(scannedUrl);
                 }
               }
             },
           ),
-          // --- MANUAL IP BUTTON ---
+          
+          // Futuristic Overlay
+          IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                backgroundBlendMode: BlendMode.dstOut,
+              ),
+            ),
+          ),
+          
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppTheme.primary, width: 2),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Scanner Line Animation
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 2,
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primary.withOpacity(0.8),
+                                blurRadius: 10,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                            gradient: LinearGradient(
+                              colors: [AppTheme.primary.withOpacity(0), AppTheme.primary, AppTheme.primary.withOpacity(0)],
+                            ),
+                          ),
+                        ),
+                      ).animate(onPlay: (controller) => controller.repeat())
+                       .moveY(begin: 0, end: 250, duration: 2.seconds, curve: Curves.easeInOut),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+                Text(
+                  loc.translate('registration_instruction'), // Reusing instruction key
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ).animate().fadeIn(delay: 500.ms),
+              ],
+            ),
+          ),
+          
+          // Manual IP Button at bottom
           Positioned(
-            bottom: 40,
-            left: 20,
-            right: 20,
+            bottom: 60,
+            left: 24,
+            right: 24,
             child: Column(
               children: [
                 Text(
                   loc.translate('trouble_scanning'),
-                  style: const TextStyle(color: Colors.white70),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
-                TextButton(
+                const SizedBox(height: 12),
+                PremiumButton(
+                  label: loc.translate('enter_ip_manually'),
                   onPressed: _showManualIpDialog,
-                  style: TextButton.styleFrom(backgroundColor: Colors.black45),
-                  child: Text(loc.translate('enter_ip_manually'),
-                      style: const TextStyle(color: Colors.white)),
+                  gradient: AppTheme.accentGradient,
+                  icon: Icons.keyboard_rounded,
                 ),
               ],
             ),
@@ -94,35 +151,39 @@ class _ScannerScreenState extends State<ScannerScreen> {
   void _showManualIpDialog() {
     final TextEditingController _ipController = TextEditingController();
     final loc = AppLocalizations.of(context);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(loc.translate('manual_server_connect')),
-        content: TextField(
-          controller: _ipController,
-          decoration: InputDecoration(
-            hintText: "e.g., 192.168.1.15",
-            labelText: loc.translate('server_ip'),
-          ),
-          keyboardType: TextInputType.number,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            PremiumTextField(
+              controller: _ipController,
+              label: loc.translate('server_ip'),
+              prefixIcon: Icons.lan_outlined,
+              hintText: "192.168.1.15",
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(loc.translate('cancel')),
           ),
-          ElevatedButton(
+          PremiumButton(
+            label: loc.translate('ok'),
             onPressed: () {
               Navigator.pop(context);
               String ip = _ipController.text.trim();
               if (ip.isNotEmpty) {
-                // Ensure it has http:// and :8080 if missing
                 if (!ip.startsWith('http')) ip = 'http://$ip';
                 if (!ip.contains(':8080')) ip = '$ip:8080';
                 _processUrl(ip);
               }
             },
-            child: Text(loc.translate('ok')),
           ),
         ],
       ),

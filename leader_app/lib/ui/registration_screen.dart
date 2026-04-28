@@ -4,6 +4,8 @@ import 'package:leader_app/ui/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:leader_app/network/api_client.dart';
 import 'package:leader_app/network/connection_manager.dart';
+import 'package:leader_app/ui/widgets/premium_widgets.dart';
+import 'package:leader_app/ui/theme/app_theme.dart';
 
 class RegistrationScreen extends StatefulWidget {
   // final String serverUrl;
@@ -142,73 +144,112 @@ void _register() async {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: Text(loc.translate('leader_registration'))),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            // Connection Status Indicator
-            ValueListenableBuilder<bool>(
-              valueListenable: ApiClient().isOnline,
-              builder: (context, isOnline, child) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  margin: const EdgeInsets.only(bottom: 20),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(loc.translate('leader_registration')),
+        backgroundColor: Colors.transparent,
+      ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark 
+                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+                : [AppTheme.lightBg, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                // Hero Icon/Illustration
+                Container(
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: isOnline ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isOnline ? Colors.green : Colors.red),
+                    shape: BoxShape.circle,
+                    gradient: AppTheme.primaryGradient,
+                    boxShadow: AppTheme.softShadow,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isOnline ? Icons.check_circle : Icons.error,
-                        color: isOnline ? Colors.green : Colors.red,
-                        size: 16,
+                  child: const Icon(Icons.emoji_events, size: 64, color: Colors.white),
+                ),
+                const SizedBox(height: 32),
+                
+                // Connection Status Indicator
+                ValueListenableBuilder<bool>(
+                  valueListenable: ApiClient().isOnline,
+                  builder: (context, isOnline, child) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: isOnline ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: isOnline ? Colors.green.withOpacity(0.5) : Colors.orange.withOpacity(0.5)),
                       ),
-                      const SizedBox(width: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isOnline ? Colors.green : Colors.orange,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            isOnline ? loc.translate('connected_to_server') : loc.translate('searching_for_server'),
+                            style: TextStyle(
+                              color: isOnline ? Colors.green : Colors.orange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                
+                const SizedBox(height: 40),
+                
+                PremiumCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        isOnline ? loc.translate('connected_to_server') : loc.translate('searching_for_server'),
-                        style: TextStyle(
-                          color: isOnline ? Colors.green[700] : Colors.red[700],
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                        loc.translate('registration_instruction'),
+                        style: const TextStyle(fontSize: 16, height: 1.5),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
+                      PremiumTextField(
+                        controller: _nameController,
+                        label: loc.translate('full_name'),
+                        prefixIcon: Icons.person_outline,
+                        hintText: "e.g. John Doe",
+                      ),
+                      const SizedBox(height: 32),
+                      PremiumButton(
+                        label: loc.translate('register_and_continue'),
+                        onPressed: _isSubmitting ? null : _register,
+                        isLoading: _isSubmitting,
+                        icon: Icons.arrow_forward,
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-            Text(loc.translate('registration_instruction'), textAlign: TextAlign.center),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: loc.translate('full_name'),
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.person),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _register,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: _isSubmitting 
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(loc.translate('register_and_continue'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            )
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

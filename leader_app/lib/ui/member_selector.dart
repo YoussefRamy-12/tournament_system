@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:leader_app/ui/app_localizations.dart';
-import 'package:shared_models/models.dart'; // Use the shared model!
+import 'package:leader_app/ui/widgets/premium_widgets.dart';
+import 'package:leader_app/ui/theme/app_theme.dart';
+import 'package:shared_models/models.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../network/api_client.dart';
-import 'member_list_screen.dart'; // Move the second screen to its own file
+import 'member_list_screen.dart';
 
 class MemberSelector extends StatefulWidget {
   const MemberSelector({super.key});
@@ -36,7 +39,6 @@ class _MemberSelectorState extends State<MemberSelector> {
     }
 
     try {
-      // 1. Try normal fetch first
       final teams = await _apiClient.fetchTeams().timeout(
         const Duration(seconds: 5),
       );
@@ -48,11 +50,8 @@ class _MemberSelectorState extends State<MemberSelector> {
         _error = null;
       });
     } catch (e) {
-      // 2. If fetch fails, try to reconnect automatically
       if (!mounted) return;
 
-      // Only show snackbar if we are in the "refreshing" state (not initial full screen load)
-      // or if we want to inform user we are trying to fix it.
       if (!isInitial) {
         final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -66,7 +65,6 @@ class _MemberSelectorState extends State<MemberSelector> {
       final newIp = await _apiClient.findNewServerIP();
 
       if (newIp != null) {
-        // 3. Retry fetch with new IP
         try {
           final teamsRetry = await _apiClient.fetchTeams().timeout(
             const Duration(seconds: 5),
@@ -82,48 +80,51 @@ class _MemberSelectorState extends State<MemberSelector> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                AppLocalizations.of(
-                  context,
-                ).translate('reconnected_successfully'),
+                AppLocalizations.of(context).translate('reconnected_successfully'),
               ),
               backgroundColor: Colors.green,
             ),
           );
           return;
-        } catch (retryError) {
-          // Retry failed too
-        }
+        } catch (retryError) {}
       }
 
-      // If we get here, both initial fetch and recovery failed
       if (!mounted) return;
       setState(() {
         _error = e;
         _isLoading = false;
       });
-
-      if (!isInitial) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).translate('could_not_find_server'),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: Text(loc.translate('select_team'))),
-      body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        onRefresh: () => _loadData(isInitial: false),
-        child: _buildContent(),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(loc.translate('select_team')),
+        backgroundColor: Colors.transparent,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark 
+                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+                : [AppTheme.lightBg, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: RefreshIndicator(
+            key: _refreshIndicatorKey,
+            onRefresh: () => _loadData(isInitial: false),
+            child: _buildContent(),
+          ),
+        ),
       ),
     );
   }
@@ -131,128 +132,113 @@ class _MemberSelectorState extends State<MemberSelector> {
   Widget _buildContent() {
     final loc = AppLocalizations.of(context);
     if (_isLoading) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 200), // Push the spinner down a bit
-          Center(
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary)),
+            const SizedBox(height: 24),
+            Text(loc.translate('loading_tournament_data')),
+          ],
+        ),
+      );
+    } else if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: PremiumCard(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(strokeWidth: 2),
-                SizedBox(height: 16),
+                const Icon(Icons.wifi_off_rounded, color: Colors.orangeAccent, size: 64),
+                const SizedBox(height: 24),
                 Text(
-                  loc.translate('loading_tournament_data'),
-                  style: const TextStyle(color: Colors.white70),
+                  loc.translate('connection_not_found'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  loc.translate('connection_not_found_message'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 32),
+                PremiumButton(
+                  label: loc.translate('retry_connection'),
+                  onPressed: () => _refreshIndicatorKey.currentState?.show(),
+                  icon: Icons.refresh_rounded,
                 ),
               ],
             ),
           ),
-        ],
+        ),
       );
-    } else if (_error != null) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+    } else if (_teams == null || _teams!.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.group_off_rounded, size: 80, color: AppTheme.primary.withOpacity(0.2)),
+            const SizedBox(height: 24),
+            Text(loc.translate('no_teams_registered'), style: const TextStyle(color: Colors.grey, fontSize: 16)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(24),
+      itemCount: _teams!.length,
+      itemBuilder: (context, index) {
+        final team = _teams![index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: PremiumCard(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MemberListScreen(team: team)),
+              );
+            },
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Text(
+                      team.name[0].toUpperCase(),
+                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.qr_code_scanner,
-                        color: Colors.orangeAccent,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
                       Text(
-                        loc.translate('connection_not_found'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        team.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Text(
-                        loc.translate('connection_not_found_message'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.refresh),
-                        label: Text(loc.translate('retry_connection')),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () =>
-                            _refreshIndicatorKey.currentState?.show(),
+                        "Tap to view members", // Localize this if possible
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                     ],
                   ),
                 ),
-              ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey, size: 16),
+              ],
             ),
-          );
-        },
-      );
-    } else if (_teams == null || _teams!.isEmpty) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.group_off, color: Colors.white24, size: 60),
-                    SizedBox(height: 16),
-                    Text(
-                      loc.translate('no_teams_registered'),
-                      style: TextStyle(fontSize: 18, color: Colors.white54),
-                    ),
-                    Text(
-                      loc.translate('teams_will_appear_here'),
-                      style: TextStyle(color: Colors.white38),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    }
-
-    // Success State
-    return ListView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: _teams!.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          leading: CircleAvatar(child: Text(_teams![index].name[0])),
-          title: Text(_teams![index].name),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MemberListScreen(team: _teams![index]),
-              ),
-            );
-          },
-        );
+          ),
+        ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: 0.1, end: 0);
       },
     );
   }

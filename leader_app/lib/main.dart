@@ -10,6 +10,8 @@ import 'package:leader_app/ui/registration_screen.dart';
 import 'package:leader_app/ui/scanner_screen.dart';
 import 'package:leader_app/ui/waiting_approval_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:responsive_framework/responsive_framework.dart';
+import 'package:leader_app/ui/theme/app_theme.dart';
 
 void main() async {
   // 1. Ensure Flutter is ready
@@ -54,14 +56,8 @@ void main() async {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Tournament Leader',
-            theme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, brightness: Brightness.light),
-            ),
-            darkTheme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, brightness: Brightness.dark),
-            ),
+            theme: AppTheme.lightTheme(settings.locale),
+            darkTheme: AppTheme.darkTheme(settings.locale),
             themeMode: settings.themeMode,
             locale: settings.locale,
             localizationsDelegates: const [
@@ -75,11 +71,20 @@ void main() async {
               Locale('ar', ''),
             ],
             builder: (context, child) {
+              child = ResponsiveBreakpoints.builder(
+                child: child!,
+                breakpoints: [
+                  const Breakpoint(start: 0, end: 450, name: MOBILE),
+                  const Breakpoint(start: 451, end: 800, name: TABLET),
+                  const Breakpoint(start: 801, end: 1920, name: DESKTOP),
+                  const Breakpoint(start: 1921, end: double.infinity, name: '4K'),
+                ],
+              );
               return MediaQuery(
                 data: MediaQuery.of(context).copyWith(
                   textScaler: TextScaler.linear(settings.fontSizeFactor),
                 ),
-                child: child!,
+                child: child,
               );
             },
             home: initialScreen,

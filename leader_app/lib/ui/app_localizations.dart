@@ -108,6 +108,10 @@ class AppLocalizations {
       'unknown_member': 'Unknown Member',
       'reconnected_successfully': 'Reconnected successfully!',
       'could_not_find_server': 'Could not find server. Please check Wi-Fi.',
+      'reset_points': 'Reset Points',
+      'app_title': 'Tournament Leader',
+      'dashboard': 'Dashboard',
+      'welcome_back': 'Welcome back, {name}!',
     },
     'ar': {
       'settings': 'الإعدادات',
@@ -206,6 +210,10 @@ class AppLocalizations {
       'reconnected_successfully': 'تمت إعادة الاتصال بنجاح!',
       'could_not_find_server':
           'لم يتم العثور على الخادم. يرجى التحقق من الـ Wi-Fi.',
+      'reset_points': 'إعادة ضبط النقاط',
+      'app_title': 'قائد البطولة',
+      'dashboard': 'لوحة التحكم',
+      'welcome_back': 'أهلاً بك مجدداً، {name}!',
     },
   };
 

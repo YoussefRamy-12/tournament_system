@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/scoring_form_screen.dart';
+import 'package:leader_app/ui/widgets/premium_widgets.dart';
+import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:shared_models/models.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../network/api_client.dart';
-// import 'scoring_form_screen.dart'; // We will build this next
 
 class MemberListScreen extends StatefulWidget {
   final Team team;
@@ -105,12 +107,31 @@ class _MemberListScreenState extends State<MemberListScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: Text(loc.translateWithParam('score_member', 'name', widget.team.name))),
-      body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        onRefresh: () => _loadData(isInitial: false),
-        child: _buildContent(),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(loc.translateWithParam('score_member', 'name', widget.team.name)),
+        backgroundColor: Colors.transparent,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark 
+                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+                : [AppTheme.lightBg, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: RefreshIndicator(
+            key: _refreshIndicatorKey,
+            onRefresh: () => _loadData(isInitial: false),
+            child: _buildContent(),
+          ),
+        ),
       ),
     );
   }
@@ -118,120 +139,107 @@ class _MemberListScreenState extends State<MemberListScreen> {
   Widget _buildContent() {
     final loc = AppLocalizations.of(context);
     if (_isLoading) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 200),
-          Center(
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary)),
+            const SizedBox(height: 24),
+            Text(loc.translate('loading_members')),
+          ],
+        ),
+      );
+    } else if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: PremiumCard(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(strokeWidth: 2),
-                SizedBox(height: 16),
+                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
+                const SizedBox(height: 24),
                 Text(
-                  loc.translate('loading_members'),
-                  style: const TextStyle(color: Colors.white70),
+                  loc.translate('oops_something_wrong'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  loc.translate('could_not_load_members'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 32),
+                PremiumButton(
+                  label: loc.translate('try_again'),
+                  onPressed: () => _refreshIndicatorKey.currentState?.show(),
+                  icon: Icons.refresh_rounded,
                 ),
               ],
             ),
           ),
-        ],
-      );
-    } else if (_error != null) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              Container(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                alignment: Alignment.center,
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.redAccent,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        loc.translate('oops_something_wrong'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        loc.translate('could_not_load_members'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.refresh),
-                        label: Text(loc.translate('try_again')),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                        // Identical UX: Trigger the refresh indicator
-                        onPressed: () =>
-                            _refreshIndicatorKey.currentState?.show(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+        ),
       );
     }
 
     final members = _members ?? [];
 
     if (members.isEmpty) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              Container(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                alignment: Alignment.center,
-                child: Text(loc.translate('no_members_found')),
-              ),
-            ],
-          );
-        },
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline_rounded, size: 80, color: AppTheme.primary.withOpacity(0.2)),
+            const SizedBox(height: 24),
+            Text(loc.translate('no_members_found'), style: const TextStyle(color: Colors.grey, fontSize: 16)),
+          ],
+        ),
       );
     }
 
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(24),
       itemCount: members.length,
       itemBuilder: (context, index) {
-        return ListTile(
-          leading: CircleAvatar(child: Text('${index + 1}')),
-          title: Text(members[index].name),
-          onTap: () {
-            // Navigate to the form to actually give points
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ScoringFormScreen(member: members[index]),
-              ),
-            );
-          },
-        );
+        final member = members[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: PremiumCard(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ScoringFormScreen(member: member)),
+              );
+            },
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${index + 1}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    member.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              ],
+            ),
+          ),
+        ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: 0.1, end: 0);
       },
     );
   }

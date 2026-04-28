@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/network/connection_manager.dart';
+import 'package:leader_app/ui/widgets/premium_widgets.dart';
+import 'package:leader_app/ui/theme/app_theme.dart';
 import 'package:shared_models/models.dart';
 import 'package:shared_models/constants.dart';
-import '../network/api_client.dart'; // Ensure this import exists
+import 'package:flutter_animate/flutter_animate.dart';
+import '../network/api_client.dart';
 
 class ScoringFormScreen extends StatefulWidget {
   final Member member;
@@ -32,114 +35,156 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: Text(loc.translateWithParam('score_member', 'name', widget.member.name))),
-      body: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // Points Display
-              Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          loc.translateWithParam('score_member', 'name', widget.member.name),
+        ),
+        backgroundColor: Colors.transparent,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
+                : [AppTheme.lightBg, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                // Points Display Card
+                PremiumCard(
                   child: Column(
                     children: [
                       Text(
                         loc.translate('points_to_award'),
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      Text(
-                        '$_points',
-                        style: const TextStyle(
-                          fontSize: 64,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                          letterSpacing: 1.2,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                            '$_points',
+                            key: ValueKey(_points),
+                            style: TextStyle(
+                              fontSize: 72,
+                              fontWeight: FontWeight.bold,
+                              color: _points > 0
+                                  ? AppTheme.primary
+                                  : (_points < 0
+                                        ? Colors.redAccent
+                                        : (isDark
+                                              ? Colors.white
+                                              : Colors.black87)),
+                            ),
+                          )
+                          .animate()
+                          .scale(duration: 200.ms, curve: Curves.easeOutBack)
+                          .fadeIn(),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              // Points Buttons
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+                const SizedBox(height: 32),
+
+                // Point Adjusters
+                Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _pointButton(-10, Colors.redAccent),
+                        _pointButton(-5, Colors.redAccent),
+                        _pointButton(-1, Colors.redAccent),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _pointButton(1, Colors.greenAccent),
+                        _pointButton(5, Colors.greenAccent),
+                        _pointButton(10, Colors.greenAccent),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: () => setState(() => _points = 0),
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: Text(
+                        loc.translate('reset_points'),
+                      ), // Ensure this key exists or use a default
+                      style: TextButton.styleFrom(foregroundColor: Colors.grey),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 40),
+
+                // Reason & Description
+                PremiumCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _pointButton(
-                        -1,
-                        Colors.red,
-                      ), // Added a minus button for mistakes
-                      _pointButton(
-                        -5,
-                        Colors.red,
-                      ), // Added a minus button for mistakes
-                      _pointButton(-10, Colors.red),
+                      DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: loc.translate('reason_tag'),
+                          prefixIcon: const Icon(
+                            Icons.label_outline,
+                            color: AppTheme.primary,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: isDark
+                              ? AppTheme.darkBg.withOpacity(0.5)
+                              : Colors.grey.withOpacity(0.05),
+                        ),
+                        hint: Text(loc.translate('select_tag')),
+                        initialValue: _selectedTag,
+                        items: TournamentConstants.scoreTags.map((tag) {
+                          return DropdownMenuItem(value: tag, child: Text(tag));
+                        }).toList(),
+                        onChanged: (value) =>
+                            setState(() => _selectedTag = value),
+                      ),
+                      const SizedBox(height: 24),
+                      PremiumTextField(
+                        controller: _descriptionController,
+                        label: loc.translate('description_optional'),
+                        prefixIcon: Icons.description_outlined,
+                        hintText: loc.translate('add_details_hint'),
+                      ),
                     ],
                   ),
-                  SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Added a minus button for mistakes
-                      _pointButton(1, Colors.green),
-                      _pointButton(5, Colors.green),
-                      _pointButton(10, Colors.green),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              // Tag Dropdown
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  labelText: loc.translate('reason_tag'),
                 ),
-                hint: Text(loc.translate('select_tag')),
-                initialValue: _selectedTag,
-                items: TournamentConstants.scoreTags.map((tag) {
-                  return DropdownMenuItem(value: tag, child: Text(tag));
-                }).toList(),
-                onChanged: (value) => setState(() => _selectedTag = value),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  labelText: loc.translate('description_optional'),
-                  hintText: loc.translate('add_details_hint'),
-                ),
-                maxLines: 3,
-                // onChanged: (value) => setState(() => _description = value),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                  ),
+
+                const SizedBox(height: 40),
+
+                PremiumButton(
+                  label: loc.translate('submit_score'),
                   onPressed:
                       (_points != 0 && _selectedTag != null && !_isSubmitting)
                       ? _submitScore
                       : null,
-                  child: _isSubmitting
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          loc.translate('submit_score'),
-                          style: const TextStyle(fontSize: 18),
-                        ),
+                  isLoading: _isSubmitting,
+                  icon: Icons.check_circle_outline,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -147,10 +192,35 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   }
 
   Widget _pointButton(int value, Color color) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(foregroundColor: color),
-      onPressed: () => setState(() => _points += value),
-      child: Text(value > 0 ? '+$value' : '$value'),
+    final label = value > 0 ? '+$value' : '$value';
+    return Container(
+      width: 80,
+      height: 50,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() => _points += value);
+            // Add haptic-like effect or animation here if needed
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -169,9 +239,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
         final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              loc.translate('connection_lost_message'),
-            ),
+            content: Text(loc.translate('connection_lost_message')),
             backgroundColor: Colors.red,
           ),
         );
@@ -188,10 +256,10 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
         if (status == 'NOT_FOUND') {
           message = loc.translate('registration_not_found_message');
         }
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
         Navigator.pushNamedAndRemoveUntil(
           context,
           '/waiting_approval',
