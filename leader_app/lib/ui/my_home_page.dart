@@ -5,6 +5,8 @@ import 'package:leader_app/network/api_client.dart';
 import 'package:leader_app/ui/history_screen.dart';
 import 'package:leader_app/ui/member_selector.dart';
 import 'package:leader_app/ui/scanner_screen.dart';
+import 'package:leader_app/ui/settings_screen.dart';
+import 'package:leader_app/ui/app_localizations.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -75,12 +77,14 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Row(
           children: [
-            Text(widget.title),
+            Text(loc.translate('test')),
             const SizedBox(width: 16),
             // --- Unified Connection Status Indicator ---
             ValueListenableBuilder<bool>(
@@ -106,8 +110,15 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         actions: [
           IconButton(
             icon: const Icon(Icons.sync_problem),
-            tooltip: 'Reconnect to Laptop',
+            tooltip: loc.translate('reconnect'),
             onPressed: _isManualChecking ? null : _manualReconnect,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            ),
           ),
         ],
       ),
@@ -117,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
           children: [
             ListTile(
               leading: const Icon(Icons.qr_code),
-              title: const Text('Scan QR Code'),
+              title: Text(loc.translate('scan_qr')),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ScannerScreen()),
@@ -125,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             ),
             ListTile(
               leading: const Icon(Icons.people),
-              title: const Text('Select Member Screen'),
+              title: Text(loc.translate('select_member')),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const MemberSelector()),
@@ -133,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             ),
             ListTile(
               leading: const Icon(Icons.history),
-              title: const Text('History Screen'),
+              title: Text(loc.translate('history')),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const HistoryScreen()),

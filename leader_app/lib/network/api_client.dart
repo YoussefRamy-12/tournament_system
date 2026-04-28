@@ -211,6 +211,24 @@ class ApiClient {
     }
   }
 
+  Future<bool> deleteLeader(String leaderId) async {
+    try {
+      final baseUrl = await _connection.getUrl();
+      if (baseUrl == null) return false;
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/delete-leader'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id': leaderId}),
+      ).timeout(const Duration(seconds: 5));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error deleting leader: $e");
+      return false;
+    }
+  }
+
   Future<bool> isServerAvailable() async {
     try {
       final baseUrl = await _connection.getUrl();

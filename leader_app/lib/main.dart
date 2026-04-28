@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:leader_app/network/api_client.dart';
 import 'package:leader_app/network/connection_manager.dart';
-// import 'package:leader_app/ui/MyHomePage.dart';
+import 'package:leader_app/network/settings_provider.dart';
+import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/member_selector.dart';
 import 'package:leader_app/ui/my_home_page.dart';
 import 'package:leader_app/ui/registration_screen.dart';
 import 'package:leader_app/ui/scanner_screen.dart';
-// import 'package:leader_app/ui/scoring_form_screen.dart';
 import 'package:leader_app/ui/waiting_approval_screen.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   // 1. Ensure Flutter is ready
@@ -34,7 +35,6 @@ void main() async {
       }
     } catch (e) {
       print("⚠️ Connection failed during startup: $e");
-      // Don't crash, just continue to initialScreen selection
     }
   }
 
@@ -43,41 +43,56 @@ void main() async {
   } else if (!isRegistered) {
     initialScreen = const RegistrationScreen();
   } else {
-    initialScreen = const MyHomePage(title: "test"); // Your Home Screen
+    initialScreen = const MyHomePage(title: "test");
   }
-  // print(
-  //   " Saved URL: $savedUrl, Leader Name: $leaderName , Registered: $isRegistered ",
-  // );
 
-  // runApp(const MyApp());
   runApp(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      // 3. If URL exists, go to home. If not, go to scanner.
-      home: initialScreen,
-      // initialRoute: initialRoute,
-      routes: {
-        // '/': (context) => const ScannerScreen(),
-        '/scanner': (context) => const ScannerScreen(),
-        '/home': (context) => const MyHomePage(title: 'test'),
-        '/member_selector': (context) => const MemberSelector(),
-        '/registration': (context) =>
-            RegistrationScreen(/*serverUrl: savedUrl!*/),
-        '/waiting_approval': (context) => const WaitingApprovalScreen(),
-      },
+    ChangeNotifierProvider(
+      create: (_) => SettingsProvider(),
+      child: Consumer<SettingsProvider>(
+        builder: (context, settings, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Tournament Leader',
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, brightness: Brightness.light),
+            ),
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, brightness: Brightness.dark),
+            ),
+            themeMode: settings.themeMode,
+            locale: settings.locale,
+            localizationsDelegates: const [
+              AppLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en', ''),
+              Locale('ar', ''),
+            ],
+            builder: (context, child) {
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(settings.fontSizeFactor),
+                ),
+                child: child!,
+              );
+            },
+            home: initialScreen,
+            routes: {
+              '/scanner': (context) => const ScannerScreen(),
+              '/home': (context) => const MyHomePage(title: 'test'),
+              '/member_selector': (context) => const MemberSelector(),
+              '/registration': (context) => const RegistrationScreen(),
+              '/waiting_approval': (context) => const WaitingApprovalScreen(),
+            },
+          );
+        },
+      ),
     ),
   );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
-    );
-  }
 }

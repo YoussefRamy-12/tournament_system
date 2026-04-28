@@ -49,6 +49,36 @@ class ConnectionManager {
     return prefs.getBool('is_registered') ?? false;
   }
 
+  Future<void> saveThemeMode(String mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("theme_mode", mode);
+  }
+
+  Future<String> getThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("theme_mode") ?? "system";
+  }
+
+  Future<void> saveLanguageCode(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("language_code", code);
+  }
+
+  Future<String> getLanguageCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("language_code") ?? "en";
+  }
+
+  Future<void> saveFontSizeFactor(double factor) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble("font_size_factor", factor);
+  }
+
+  Future<double> getFontSizeFactor() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble("font_size_factor") ?? 1.0;
+  }
+
   Future<void> clearRegistration() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('leader_id');

@@ -117,6 +117,19 @@ class ApiRouter {
       return Response.ok('Registered');
     });
 
+    // 1.5 Delete Leader
+    router.post('/delete-leader', (Request request) async {
+      final data = jsonDecode(await request.readAsString());
+      final String leaderId = data['id'];
+      final db = await _dbHelper.database;
+
+      await db.delete('leaders', where: 'id = ?', whereArgs: [leaderId]);
+
+      DashboardNotifier.instance.notifyDashboardUpdate();
+
+      return Response.ok(jsonEncode({'status': 'deleted'}));
+    });
+
     // 2. Check Approval Status (Used by phone to see if they can start scoring)
     // Ensure there is a <leaderId> parameter defined in the path
     router.get('/check-approval/<leaderId>', (
