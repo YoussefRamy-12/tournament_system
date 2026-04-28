@@ -117,8 +117,18 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen> {
                 onTap: () => _showStatusPicker(context, item),
                 title: Text(item['memberName'] ?? 'Unknown Member'),
                 // Added Leader Name to the subtitle for Admin visibility
-                subtitle: Text(
-                  'By: ${item['leaderName'] ?? "Unknown"} • ${item['tag']}',
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('By: ${item['leaderName'] ?? "Unknown"} • ${item['tag']}'),
+                    if (item['description'] != null && item['description'].toString().isNotEmpty)
+                      Text(
+                        item['description'],
+                        style: TextStyle(color: Colors.grey[700], fontStyle: FontStyle.italic, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

@@ -127,31 +127,78 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   Future<void> _processUrl(String? url) async {
-    if (url != null && url.startsWith('http') && url.isNotEmpty) {
-      final conn = ConnectionManager();
+    if (url == null || !url.startsWith('http') || url.isEmpty) return;
 
-      // 1. Save the URL
-      await conn.saveUrl(url);
+    // Show loading indicator
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-      // 2. Generate the ID immediately
+    final conn = ConnectionManager();
+    final apiClient = ApiClient();
+
+    // 1. TEMPORARILY save for testing
+    final oldUrl = await conn.getUrl();
+    await conn.saveUrl(url);
+
+    // 2. Validate connection
+    bool isAvailable = await apiClient.isServerAvailable();
+
+    if (mounted) {
+      Navigator.pop(context); // Close loading indicator
+    }
+
+    if (isAvailable) {
+      // 3. Generate the ID immediately
       await conn.getOrGenerateLeaderId();
 
-      // 3. TRIGGER WEBSOCKET IMMEDIATELY
-      // This is crucial for showing up as "Online" to the admin
-      ApiClient().connectWebSocket();
+      // 4. TRIGGER WEBSOCKET IMMEDIATELY
+      apiClient.connectWebSocket();
 
-      if (mounted && context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Connected to server successfully!'),
             backgroundColor: Colors.green,
           ),
         );
-        // 2. Go to the Registration Screen
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/registration',
-          (route) => false,
+        Navigator.pushNamedAndRemoveUntil(context, '/registration', (route) => false);
+      }
+    } else {
+      // Revert if failed
+      if (oldUrl != null) await conn.saveUrl(oldUrl);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not reach server at $url. Check Wi-Fi/Firewall.'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Details',
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Connection Failed"),
+                    content: Text(
+                      "The app tried to reach $url but got no response.\n\n"
+                      "Possible causes:\n"
+                      "1. Phone and Laptop are on DIFFERENT Wi-Fi.\n"
+                      "2. Windows Firewall is blocking Port 8080.\n"
+                      "3. The IP address has changed on the laptop."
+                    ),
+                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
+                  )
+                );
+              },
+            ),
+          ),
         );
       }
     }

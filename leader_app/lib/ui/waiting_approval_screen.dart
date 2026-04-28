@@ -40,10 +40,42 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
     } else if (status == 'REJECTED') {
       _timer?.cancel();
       _showRejectedDialog(); // This breaks the loop and shows the "Try Again" button
+    } else if (status == 'NOT_FOUND') {
+      _timer?.cancel();
+      _showRemovedDialog();
     } else if (status == 'ERROR' || status == 'CONNECTION_ERROR') {
       // Optional: Show a small toast or message that the server is unreachable
       // print("Waiting for server to recover...");
     }
+  }
+
+  
+  void _showRemovedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Registration Removed'),
+        content: const Text(
+          'Your registration was removed by the Admin. Please register again to join the tournament.',
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () async {
+              await _connection.clearRegistration();
+              if (mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/scanner',
+                  (route) => false,
+                );
+              }
+            },
+            child: const Text('Return to Scan'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showRejectedDialog() {

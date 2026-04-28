@@ -48,4 +48,13 @@ class ConnectionManager {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('is_registered') ?? false;
   }
+
+  Future<void> clearRegistration() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('leader_id');
+    await prefs.remove('leader_name');
+    await prefs.remove('is_registered');
+    // We keep server_url so the user doesn't have to scan the QR again 
+    // unless they really want to connect to a different server.
+  }
 }

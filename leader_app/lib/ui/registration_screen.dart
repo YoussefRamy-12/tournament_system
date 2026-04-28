@@ -34,11 +34,12 @@ void _register() async {
 
     setState(() => _isSubmitting = true);
     
+    String? serverUrl;
     try {
       final conn = ConnectionManager();
       
       // 2. Properly AWAIT the URL retrieval
-      final String? serverUrl = await conn.getUrl();
+      serverUrl = await conn.getUrl();
       
       if (serverUrl == null) {
         throw Exception("Server URL not found. Please scan again.");
@@ -71,9 +72,34 @@ void _register() async {
       }
     } catch (e) {
       setState(() => _isSubmitting = false);
+      print("❌ Registration failed to $serverUrl: $e");
+      
+      String displayError = e.toString();
+      if (e is http.ClientException || e.toString().contains("SocketException")) {
+        displayError = "Connection Failed. Ensure you are on the same Wi-Fi as the Admin Laptop at $serverUrl";
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(
+            content: Text('Error: $displayError'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Details',
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Detailed Error"),
+                    content: Text("Target: $serverUrl\n\nError: $e"),
+                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
+                  )
+                );
+              },
+            ),
+          ),
         );
       }
     }
@@ -119,12 +145,65 @@ void _register() async {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            const Text('Enter your name to join the tournament as a Leader.'),
-            TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Full Name')),
+            // Connection Status Indicator
+            ValueListenableBuilder<bool>(
+              valueListenable: ApiClient().isOnline,
+              builder: (context, isOnline, child) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: isOnline ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: isOnline ? Colors.green : Colors.red),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isOnline ? Icons.check_circle : Icons.error,
+                        color: isOnline ? Colors.green : Colors.red,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isOnline ? "Connected to Server" : "Searching for Server...",
+                        style: TextStyle(
+                          color: isOnline ? Colors.green[700] : Colors.red[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const Text('Enter your name to join the tournament as a Leader.', textAlign: TextAlign.center),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _register,
-              child: const Text('Register and Continue'),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _register,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _isSubmitting 
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Register and Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
             )
           ],
         ),

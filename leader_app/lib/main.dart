@@ -24,13 +24,17 @@ void main() async {
   Widget initialScreen;
 
   if (savedUrl != null && isRegistered) {
-    // 2. Ping the saved URL to see if it's still valid
-    bool available = await apiClient.isServerAvailable();
+    try {
+      // 2. Ping the saved URL to see if it's still valid
+      bool available = await apiClient.isServerAvailable();
 
-    if (!available) {
-      // print("Saved IP is dead. Searching for new server IP...");
-      // 3. Search for the server ONCE during startup
-      await apiClient.findNewServerIP();
+      if (!available) {
+        // 3. Search for the server ONCE during startup
+        await apiClient.findNewServerIP();
+      }
+    } catch (e) {
+      print("⚠️ Connection failed during startup: $e");
+      // Don't crash, just continue to initialScreen selection
     }
   }
 

@@ -266,18 +266,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
             itemBuilder: (context, index) {
               final item = items[index];
               return ListTile(
+                isThreeLine: item['description'] != null && item['description'].toString().isNotEmpty,
                 title: Text(
                   item['memberName'] ?? 'Unknown Member',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text(
-                  '${item['tag']} • ${item['points'] > 0 ? "+" : ""}${item['points']} pts',
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${item['tag']} • ${item['points'] > 0 ? "+" : ""}${item['points']} pts'),
+                    if (item['description'] != null && item['description'].toString().isNotEmpty)
+                      Text(
+                        item['description'],
+                        style: TextStyle(color: Colors.grey[700], fontStyle: FontStyle.italic, fontSize: 13),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
                 trailing: Text(
-                  item['timestamp'].toString().substring(
-                    11,
-                    16,
-                  ), // Shows "HH:mm"
+                  item['timestamp'].toString().substring(11, 16), // Shows "HH:mm"
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               );

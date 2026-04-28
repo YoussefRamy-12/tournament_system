@@ -5,7 +5,8 @@ import 'dart:io';
 class NetworkService {
   // final _networkInfo = NetworkInfo();
 
-  Future<String?> getLocalIP() async {
+  Future<List<String>> getAllLocalIPs() async {
+    List<String> foundIps = [];
     try {
       final interfaces = await NetworkInterface.list(
         type: InternetAddressType.IPv4,
@@ -13,27 +14,38 @@ class NetworkService {
       );
 
       for (var interface in interfaces) {
-        // Look for common Wi-Fi or LAN interfaces
         for (var address in interface.addresses) {
           if (!address.isLoopback && address.type == InternetAddressType.IPv4) {
-            // Specifically look for 192.168.x.x, 10.x.x.x, or 172.16.x.x-172.31.x.x
             final addr = address.address;
+            // Prioritize common private LAN IPs
             if (addr.startsWith('192.168.') || 
                 addr.startsWith('10.') || 
                 addr.startsWith('172.')) {
-              return addr;
+              foundIps.add(addr);
             }
           }
         }
       }
-
-      // If no private LAN IP found, return the first non-loopback IPv4
-      if (interfaces.isNotEmpty && interfaces.first.addresses.isNotEmpty) {
-        return interfaces.first.addresses.first.address;
+      
+      // If no private LAN IP found but we have other IPv4, add them
+      if (foundIps.isEmpty && interfaces.isNotEmpty) {
+        for (var interface in interfaces) {
+          for (var address in interface.addresses) {
+             if (address.type == InternetAddressType.IPv4) {
+               foundIps.add(address.address);
+             }
+          }
+        }
       }
     } catch (e) {
-      print("Error getting Local IP: $e");
+      print("Error getting Local IPs: $e");
     }
-    return null;
+    return foundIps.toSet().toList(); // Return unique IPs
+  }
+
+  // Keep the old one for compatibility temporarily, or just migrate it
+  Future<String?> getLocalIP() async {
+    final ips = await getAllLocalIPs();
+    return ips.isNotEmpty ? ips.first : null;
   }
 }

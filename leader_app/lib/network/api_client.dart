@@ -39,27 +39,36 @@ class ApiClient {
     final wsUrl = '${cleanBase.replaceFirst('http', 'ws')}/ws';
 
     try {
-      print("🔌 WS: Connecting to $wsUrl...");
+      print("🔌 WS: Attempting connection to: $wsUrl");
       // Add a timeout to the connection attempt
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
       
-      // Wait for a second or first message to confirm connection?
-      // Actually, we'll assume connected once the stream is open
-      
       _channel!.stream.listen(
         (message) {
-          // print("WS Message: $message");
-          if (!isOnline.value) isOnline.value = true;
+          try {
+            final data = jsonDecode(message);
+            if (data['status'] == 'connected') {
+              if (!isOnline.value) isOnline.value = true;
+              print("🔌 WS: Handshake successful");
+            }
+          } catch (e) {
+            // If it's not JSON (like a 'pong' or 'ping'), we still count it as online
+            if (!isOnline.value) isOnline.value = true;
+          }
         },
         onDone: () {
-          print("🔌 WS: Connection closed");
+          print("🔌 WS: Connection closed for $wsUrl");
           isOnline.value = false;
           _isConnecting = false;
           _stopHeartbeat();
           _reconnect();
         },
         onError: (error) {
-          print("🔌 WS: Connection error: $error");
+          String errorMessage = error.toString();
+          if (error is Exception && errorMessage.contains("113")) {
+             errorMessage = "No route to host (check if on same Wi-Fi and Firewall is open)";
+          }
+          print("🔌 WS: Connection error for $wsUrl: $errorMessage");
           isOnline.value = false;
           _isConnecting = false;
           _stopHeartbeat();
@@ -69,14 +78,13 @@ class ApiClient {
 
       // Send leaderId as first message
       _channel!.sink.add(leaderId);
-      isOnline.value = true;
       _isConnecting = false;
-      print("🔌 WS: Connected and sent leaderId: $leaderId");
+      print("🔌 WS: Attached listener to $wsUrl (waiting for handshake...)");
 
       // Start a heartbeat to keep connection alive
       _startHeartbeat();
     } catch (e) {
-      print("🔌 WS: Connection failed: $e");
+      print("🔌 WS: Unexpected connection failed for $wsUrl: $e");
       isOnline.value = false;
       _isConnecting = false;
       _reconnect();
@@ -220,34 +228,36 @@ class ApiClient {
   }
 
   Future<String?> findNewServerIP() async {
-    final String? currentUrl = await _connection.getUrl();
-    if (currentUrl == null) return null;
+    try {
+      final String? currentUrl = await _connection.getUrl();
+      if (currentUrl == null) return null;
 
-    // Get the subnet (e.g., "http://192.168.1")
-    final uri = Uri.parse(currentUrl);
-    final parts = uri.host.split('.');
-    if (parts.length < 4) return null;
-    final String subnet = "${parts[0]}.${parts[1]}.${parts[2]}";
-    // print("Scanning subnet: $subnet.XXX");
+      // Get the subnet (e.g., "http://192.168.1")
+      final uri = Uri.parse(currentUrl);
+      final parts = uri.host.split('.');
+      if (parts.length < 4) return null;
+      final String subnet = "${parts[0]}.${parts[1]}.${parts[2]}";
+      print("🔎 Auto-Discovery: Scanning subnet $subnet.XXX...");
 
-    // Scan all IPs on the subnet (1 to 254)
-    // We use a list of futures to scan many IPs at once (much faster)
-    List<Future<String?>> scans = [];
+      // Scan all IPs on the subnet (1 to 255)
+      List<Future<String?>> scans = [];
 
-    for (int i = 1; i < 255; i++) {
-      final String testIp = 'http://$subnet.$i:8080';
-      // print(  "Checking $testIp");
-      scans.add(_checkIp(testIp));
-    }
-
-    // Return the first IP that responds with 'pong'
-    final results = await Future.wait(scans);
-    for (var result in results) {
-      if (result != null) {
-        await _connection.saveUrl(result); // Auto-save the new IP
-        // print("New server found at $result");
-        return result;
+      for (int i = 1; i < 255; i++) {
+        final String testIp = 'http://$subnet.$i:8080';
+        scans.add(_checkIp(testIp));
       }
+
+      // Return the first IP that responds with 'pong'
+      final results = await Future.wait(scans);
+      for (var result in results) {
+        if (result != null) {
+          await _connection.saveUrl(result); // Auto-save the new IP
+          print("✅ Auto-Discovery: Found server at $result");
+          return result;
+        }
+      }
+    } catch (e) {
+      print("❌ Auto-Discovery failed: $e");
     }
     return null;
   }

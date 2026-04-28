@@ -180,12 +180,13 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     if (status != 'APPROVED') {
       // 2. If rejected or blocked, kick them back to the waiting screen
       if (mounted) {
+        String message = "Access Revoked: Your account is no longer approved.";
+        if (status == 'NOT_FOUND') {
+          message = "Registration Found: Your account was removed by the Admin.";
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Access Revoked: Your account is no longer approved.",
-            ),
-          ),
+          SnackBar(content: Text(message)),
         );
         Navigator.pushNamedAndRemoveUntil(
           context,

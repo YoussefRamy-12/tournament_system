@@ -118,9 +118,19 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       ),
                     ),
                     title: Text(item['memberName'] ?? 'Unknown Member'),
-                    subtitle: Text(
-                      'By: ${item['leaderName'] ?? "Unknown"} • ${item['tag']}',
-                    ), // Added leaderName here
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('By: ${item['leaderName'] ?? "Unknown"} • ${item['tag']}'),
+                        if (item['description'] != null && item['description'].toString().isNotEmpty)
+                          Text(
+                            item['description'],
+                            style: TextStyle(color: Colors.grey[700], fontStyle: FontStyle.italic, fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   ),
                 ),
@@ -158,6 +168,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
                   _buildDetailRow('Leader ID', item['leader_id'].toString()),
                   _buildDetailRow('Time', item['timestamp'].toString()),
+                  if (item['description'] != null && item['description'].toString().isNotEmpty) ...[
+                    const Divider(),
+                    const Text('Description:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(item['description'], style: const TextStyle(fontStyle: FontStyle.italic)),
+                  ],
                 ],
               ),
             ),

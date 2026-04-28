@@ -162,6 +162,8 @@ class ApiRouter {
       webSocketHandler((WebSocketChannel webSocket) {
         String? currentLeaderId;
         print('🌐 WS: New connection attempt');
+        // Send immediate handshake so client knows it's truly connected
+        webSocket.sink.add(jsonEncode({'status': 'connected'}));
 
         webSocket.stream.listen(
           (message) {
