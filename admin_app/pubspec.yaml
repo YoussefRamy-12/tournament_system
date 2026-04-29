@@ -69,8 +69,11 @@ dev_dependencies:
   flutter_native_splash: ^2.3.11
 
 flutter_launcher_icons:
-  android: "ic_launcher"
-  ios: true
+  android: false
+  ios: false
+  windows:
+    generate: true
+    image_path: "assets/images/logo.png"
   image_path: "assets/images/logo.png"
 
 
