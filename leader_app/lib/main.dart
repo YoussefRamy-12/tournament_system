@@ -35,17 +35,33 @@ void main() async {
             api: apiService,
           ),
         ),
-        ChangeNotifierProvider(
+        ChangeNotifierProxyProvider<SettingsProvider, AuthProvider>(
           create: (_) => AuthProvider(
             api: apiService,
             storage: storageService,
           ),
+          update: (_, settings, auth) {
+            auth!.onNameUpdated = (newName) {
+              // Only update if it's actually different to avoid rebuild loops
+              if (settings.leaderName != newName) {
+                settings.setLeaderName(newName);
+              }
+            };
+            return auth;
+          },
         ),
-        ChangeNotifierProxyProvider<StorageService, ConnectivityProvider>(
-          create: (context) => ConnectivityProvider(
+        ChangeNotifierProxyProvider<SettingsProvider, ConnectivityProvider>(
+          create: (_) => ConnectivityProvider(
             storage: storageService,
           ),
-          update: (context, storage, connectivity) => connectivity ?? ConnectivityProvider(storage: storage),
+          update: (_, settings, connectivity) {
+            connectivity!.onProfileUpdate = (newName) {
+              if (settings.leaderName != newName) {
+                settings.setLeaderName(newName);
+              }
+            };
+            return connectivity;
+          },
         ),
         ChangeNotifierProvider(
           create: (_) => TournamentProvider(

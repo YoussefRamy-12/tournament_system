@@ -11,7 +11,8 @@ class ConnectivityProvider with ChangeNotifier {
   
   bool _isOnline = false;
   bool _isConnecting = false;
-  void Function(String)? onStatusUpdate;
+    void Function(String)? onStatusUpdate;
+  void Function(String)? onProfileUpdate;
 
   bool get isOnline => _isOnline;
   bool get isConnecting => _isConnecting;
@@ -52,6 +53,8 @@ class ConnectivityProvider with ChangeNotifier {
               _setOnline(true);
             } else if (data['type'] == 'status_update') {
               onStatusUpdate?.call(data['status']);
+            } else if (data['type'] == 'profile_update') {
+              onProfileUpdate?.call(data['name']);
             }
           } catch (e) {
             // Non-JSON message, treat as online if we already sent ID

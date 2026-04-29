@@ -147,12 +147,16 @@ class ApiRouter {
 
         if (result.isNotEmpty) {
           final String status = result.first['status'];
+          final String name = result.first['name'] ?? '';
           return Response.ok(
-            jsonEncode({'status': status}),
+            jsonEncode({
+              'status': status,
+              'name': name,
+            }),
             headers: {'Content-Type': 'application/json'},
           );
         } else {
-          // If the ID isn't found at all, we return PENDING so the app keeps waiting
+          // If the ID isn't found at all, we return NOT_FOUND
           return Response.ok(
             jsonEncode({'status': 'NOT_FOUND'}),
             headers: {'Content-Type': 'application/json'},

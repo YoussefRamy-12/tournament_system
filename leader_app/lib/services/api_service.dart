@@ -64,19 +64,18 @@ class ApiService {
     }
   }
 
-  Future<String> checkLeaderStatus(String baseUrl, String leaderId) async {
+  Future<Map<String, dynamic>?> checkLeaderStatus(String baseUrl, String leaderId) async {
     try {
       final url = Uri.parse('$baseUrl/check-approval/$leaderId');
       final response = await http.get(url).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['status']; // 'PENDING', 'APPROVED', 'REJECTED', 'NOT_FOUND'
+        return jsonDecode(response.body);
       } else if (response.statusCode == 404) {
-        return 'NOT_FOUND';
+        return {'status': 'NOT_FOUND'};
       }
-      return 'ERROR';
+      return {'status': 'ERROR'};
     } catch (e) {
-      return 'CONNECTION_ERROR';
+      return {'status': 'CONNECTION_ERROR'};
     }
   }
 

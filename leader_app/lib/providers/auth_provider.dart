@@ -96,18 +96,31 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Function(String)? onNameUpdated;
+
   Future<void> checkApproval() async {
     final url = await _storage.getUrl();
     final leaderId = await _storage.getOrGenerateLeaderId();
 
     if (url == null) return;
 
-    final result = await _api.checkLeaderStatus(url, leaderId);
+    final data = await _api.checkLeaderStatus(url, leaderId);
+    final result = data?['status'] ?? 'ERROR';
     
     AuthStatus oldStatus = _status;
     if (result == 'APPROVED') {
       _status = AuthStatus.approved;
       _pollingTimer?.cancel();
+      
+      // Update name if changed
+      final serverName = data?['name'];
+      if (serverName != null && serverName.isNotEmpty) {
+        final localName = await _storage.getLeaderName();
+        if (localName != serverName) {
+          await _storage.saveLeaderName(serverName);
+          onNameUpdated?.call(serverName);
+        }
+      }
     } else if (result == 'PENDING') {
       _status = AuthStatus.waitingApproval;
       if (_pollingTimer == null || !_pollingTimer!.isActive) {

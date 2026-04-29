@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:admin_app/database/db_helper.dart';
+import 'package:admin_app/server/online_leader_tracker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_theme.dart';
@@ -384,6 +386,22 @@ class _EntityControlListState extends State<EntityControlList> {
                       where: 'id = ?',
                       whereArgs: [item['id']],
                     );
+
+                    // If it's a leader, notify them over WebSocket
+                    if (widget.type.toLowerCase() == 'leaders') {
+                      try {
+                        final String leaderId = item['id'].toString();
+                        OnlineLeaderTracker.instance.sendToLeader(
+                          leaderId,
+                          jsonEncode({
+                            'type': 'profile_update',
+                            'name': nameController.text,
+                          }),
+                        );
+                      } catch (e) {
+                        // ignore if fail
+                      }
+                    }
                   }
                   _refreshData();
                   if (!ctx.mounted) return;
