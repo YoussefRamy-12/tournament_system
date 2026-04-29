@@ -1,4 +1,5 @@
 import 'package:admin_app/database/db_helper.dart';
+import 'package:admin_app/providers/dashboard_provider.dart';
 import 'package:admin_app/server/dashboard_notifier.dart';
 import 'package:admin_app/providers/settings_provider.dart';
 import 'package:admin_app/utils/app_localizations.dart';
@@ -24,154 +25,108 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _dbHelper = DatabaseHelper();
-  Future<Map<String, dynamic>>? _dashboardStatsFuture;
-
-  Future<Map<String, dynamic>> get _dashboardStats {
-    _dashboardStatsFuture ??= _dbHelper.getAdminDashboardStats();
-    return _dashboardStatsFuture!;
-  }
-
-  void _loadStats() {
-    setState(() {
-      _dashboardStatsFuture = _dbHelper.getAdminDashboardStats();
-    });
-  }
-
-  Future<void> _handleRefresh() async {
-    _loadStats();
-    await _dashboardStats;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final loc = AppLocalizations.of(context);
 
+    // Watch the DashboardProvider for real-time updates
+    final dashboard = context.watch<DashboardProvider>();
+    final stats = dashboard.stats;
+
     return Scaffold(
       appBar: AppBar(title: Text(loc.translate("tournament_admin"))),
-      body: StreamBuilder<void>(
-        stream: DashboardNotifier.instance.onUpdate,
-        builder: (context, _) {
-          return FutureBuilder<Map<String, dynamic>>(
-            future: _dbHelper.getAdminDashboardStats(),
-            builder: (context, snapshot) {
-              final stats =
-                  snapshot.data ??
-                  {
-                    'pendingTx': 0,
-                    'onlineLeaders': 0,
-                    'pendingLeaders': 0,
-                    'approvedLeaders': 0,
-                    'totalMembers': 0,
-                    'onlineLeadersList': [],
-                  };
-
-              return RefreshIndicator(
-                onRefresh: _handleRefresh,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0,
-                    vertical: 20,
+      body: RefreshIndicator(
+        onRefresh: dashboard.refreshStats,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(isDark, loc),
+                  const SizedBox(height: 32),
+                  _buildLiveStats(stats, isDark, loc),
+                  const SizedBox(height: 32),
+                  _buildOnlineLeadersSection(
+                    (stats['onlineLeadersList'] as List?)
+                        ?.cast<Map<String, dynamic>>(),
+                    isDark,
+                    loc,
                   ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1200),
-                      child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildHeader(isDark, loc),
-                              const SizedBox(height: 32),
-                              _buildLiveStats(stats, isDark, loc),
-                              const SizedBox(height: 32),
-                              _buildOnlineLeadersSection(
-                                stats['onlineLeadersList']
-                                    as List<Map<String, dynamic>>?,
-                                isDark,
-                                loc,
-                              ),
-                              const SizedBox(height: 40),
-                              _buildSectionTitle(
-                                loc.translate("active_operations"),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildGrid([
-                                _DashCard(
-                                  loc.translate("review_scores"),
-                                  Icons.rate_review_rounded,
-                                  Colors.blue,
-                                  () => const ReviewScreen(),
-                                ),
-                                _DashCard(
-                                  loc.translate("leader_approval"),
-                                  Icons.verified_user_rounded,
-                                  Colors.orange,
-                                  () => const LeaderApprovalScreen(),
-                                ),
-                                _DashCard(
-                                  loc.translate("full_control"),
-                                  Icons.terminal_rounded,
-                                  Colors.blueGrey,
-                                  () => const FullControlScreen(),
-                                ),
-                              ]),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle(
-                                loc.translate("monitoring_data"),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildGrid([
-                                _DashCard(
-                                  loc.translate("leaderboard"),
-                                  Icons.leaderboard_rounded,
-                                  Colors.purple,
-                                  () => LeaderboardScreen(),
-                                ),
-                                _DashCard(
-                                  loc.translate("transactions"),
-                                  Icons.receipt_long_rounded,
-                                  Colors.teal,
-                                  () => const AdminHistoryScreen(),
-                                ),
-                                _DashCard(
-                                  loc.translate("projector_view"),
-                                  Icons.monitor_rounded,
-                                  Colors.indigo,
-                                  () => const ProjectorStatsScreen(),
-                                ),
-                              ]),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle(loc.translate("system_setup")),
-                              const SizedBox(height: 16),
-                              _buildGrid([
-                                _DashCard(
-                                  loc.translate("qr_connection"),
-                                  Icons.qr_code_2_rounded,
-                                  Colors.blueGrey,
-                                  () => ConnectionScreen(),
-                                ),
-                                _DashCard(
-                                  loc.translate("settings"),
-                                  Icons.settings_suggest_rounded,
-                                  Colors.blueGrey,
-                                  () => const SettingsScreen(),
-                                ),
-                              ]),
-                              const SizedBox(height: 40),
-                            ],
-                          )
-                          .animate()
-                          .fadeIn(duration: 600.ms)
-                          .slideY(begin: 0.05, end: 0),
+                  const SizedBox(height: 40),
+                  _buildSectionTitle(loc.translate("active_operations")),
+                  const SizedBox(height: 16),
+                  _buildGrid([
+                    _DashCard(
+                      loc.translate("review_scores"),
+                      Icons.rate_review_rounded,
+                      Colors.blue,
+                      () => const ReviewScreen(),
                     ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                    _DashCard(
+                      loc.translate("leader_approval"),
+                      Icons.verified_user_rounded,
+                      Colors.orange,
+                      () => const LeaderApprovalScreen(),
+                    ),
+                    _DashCard(
+                      loc.translate("full_control"),
+                      Icons.terminal_rounded,
+                      Colors.blueGrey,
+                      () => const FullControlScreen(),
+                    ),
+                  ]),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle(loc.translate("monitoring_data")),
+                  const SizedBox(height: 16),
+                  _buildGrid([
+                    _DashCard(
+                      loc.translate("leaderboard"),
+                      Icons.leaderboard_rounded,
+                      Colors.purple,
+                      () => LeaderboardScreen(),
+                    ),
+                    _DashCard(
+                      loc.translate("transactions"),
+                      Icons.receipt_long_rounded,
+                      Colors.teal,
+                      () => const AdminHistoryScreen(),
+                    ),
+                    _DashCard(
+                      loc.translate("projector_view"),
+                      Icons.monitor_rounded,
+                      Colors.indigo,
+                      () => const ProjectorStatsScreen(),
+                    ),
+                  ]),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle(loc.translate("system_setup")),
+                  const SizedBox(height: 16),
+                  _buildGrid([
+                    _DashCard(
+                      loc.translate("qr_connection"),
+                      Icons.qr_code_2_rounded,
+                      Colors.blueGrey,
+                      () => ConnectionScreen(),
+                    ),
+                    _DashCard(
+                      loc.translate("settings"),
+                      Icons.settings_suggest_rounded,
+                      Colors.blueGrey,
+                      () => const SettingsScreen(),
+                    ),
+                  ]),
+                  const SizedBox(height: 40),
+                ],
+              ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.05, end: 0),
+            ),
+          ),
+        ),
       ),
     );
   }

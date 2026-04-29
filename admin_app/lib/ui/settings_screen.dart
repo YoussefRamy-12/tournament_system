@@ -1,4 +1,5 @@
 import 'package:admin_app/database/csv_service.dart';
+import 'package:admin_app/database/db_helper.dart';
 import 'package:admin_app/providers/settings_provider.dart';
 import 'package:admin_app/utils/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -219,9 +220,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: AppTheme.spaceXxl),
+              _buildSectionHeader(loc.translate('danger_zone')),
+              AppCard(
+                padding: const EdgeInsets.all(AppTheme.spaceMd),
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.delete_forever_rounded,
+                    color: AppTheme.errorColor,
+                  ),
+                  title: Text(
+                    loc.translate('clear_database'),
+                    style: const TextStyle(
+                      color: AppTheme.errorColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(loc.translate('clear_database_subtitle')),
+                  onTap: () => _confirmClearDatabase(loc),
+                ),
+              ),
+              const SizedBox(height: AppTheme.spaceXxl),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _confirmClearDatabase(AppLocalizations loc) {
+    List<String> tablesToClear = ['Transactions', 'Members', 'Teams', 'leaders'];
+    Map<String, bool> selection = {
+      'Transactions': false,
+      'Members': false,
+      'Teams': false,
+      'leaders': false,
+    };
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          bool allSelected = selection.values.every((v) => v);
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+            ),
+            title: Text(loc.translate('clear_database_confirm_title')),
+            content: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(loc.translate('clear_database_confirm_content')),
+                  const SizedBox(height: 20),
+                  CheckboxListTile(
+                    title: Text(loc.translate('select_all')),
+                    value: allSelected,
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selection.updateAll((key, value) => val ?? false);
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    activeColor: AppTheme.primaryColor,
+                  ),
+                  const Divider(),
+                  ...selection.keys.map((table) {
+                    return CheckboxListTile(
+                      title: Text(loc.translate(table.toLowerCase())),
+                      value: selection[table],
+                      onChanged: (val) {
+                        setDialogState(() {
+                          selection[table] = val ?? false;
+                        });
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                    );
+                  }),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(loc.translate('cancel')),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.errorColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  ),
+                ),
+                onPressed: selection.values.any((v) => v)
+                    ? () async {
+                        List<String> selected = selection.entries
+                            .where((e) => e.value)
+                            .map((e) => e.key)
+                            .toList();
+                        
+                        Navigator.pop(ctx);
+                        await DatabaseHelper().clearSelectedData(selected);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(loc.translate('clear_success')),
+                              backgroundColor: AppTheme.successColor,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    : null,
+                child: Text(loc.translate('clear_database')),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

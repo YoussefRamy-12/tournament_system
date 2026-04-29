@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../database/db_helper.dart';
 import '../theme/app_theme.dart';
 import '../components/app_components.dart';
+import '../utils/app_localizations.dart';
 
 class ReviewScreen extends StatefulWidget {
   const ReviewScreen({super.key});
@@ -14,39 +15,42 @@ class ReviewScreen extends StatefulWidget {
 class _ReviewScreenState extends State<ReviewScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  void _handleAction(String id, String status) async {
+  void _handleAction(BuildContext context, String id, String status, AppLocalizations loc) async {
     await _dbHelper.updateTransactionStatus(id, status);
-    if (mounted) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Transaction $status'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppTheme.getStatusColor(status),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
-        ),
-      );
-    }
+    if (!context.mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${loc.translate('transaction')} ${loc.translate(status.toLowerCase())}'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppTheme.getStatusColor(status),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
+      ),
+    );
   }
 
-  void _handleMassAction(String status) async {
+  void _handleMassAction(AppLocalizations loc, String status) async {
     final count = (await _dbHelper.getPendingTransactions()).length;
     if (count == 0) return;
 
     if (!mounted) return;
+    String statusText = loc.translate(status.toLowerCase());
+    
     bool confirm = await showDialog(
           context: context,
           builder: (context) => AlertDialog(
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
-            title: Text('$status All?'),
+            title: Text('$statusText ${loc.translate('all')}?'),
             content: Text(
-                'Are you sure you want to $status all $count pending requests?'),
+                loc.translate('mass_action_confirm')
+                .replaceAll('{status}', statusText)
+                .replaceAll('{count}', count.toString())),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(loc.translate('cancel')),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
@@ -55,7 +59,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       ? AppTheme.successColor
                       : AppTheme.errorColor,
                 ),
-                child: Text('Yes, $status All'),
+                child: Text('${loc.translate('yes')}, $statusText ${loc.translate('all')}'),
               ),
             ],
           ),
@@ -68,7 +72,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('All requests $status'),
+            content: Text('${loc.translate('all')} ${loc.translate('requests')} $statusText'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppTheme.getStatusColor(status),
             shape: RoundedRectangleBorder(
@@ -82,20 +86,21 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pending Scores'),
+        title: Text(loc.translate('pending_scores')),
         actions: [
           IconButton(
-            tooltip: 'Approve All',
+            tooltip: loc.translate('approve_all'),
             icon: Icon(Icons.done_all_rounded, color: AppTheme.successColor),
-            onPressed: () => _handleMassAction('APPROVED'),
+            onPressed: () => _handleMassAction(loc, 'APPROVED'),
           ),
           IconButton(
-            tooltip: 'Reject All',
+            tooltip: loc.translate('reject_all'),
             icon: Icon(Icons.remove_done_rounded, color: AppTheme.errorColor),
-            onPressed: () => _handleMassAction('REJECTED'),
+            onPressed: () => _handleMassAction(loc, 'REJECTED'),
           ),
           const SizedBox(width: AppTheme.spaceSm),
         ],
@@ -111,8 +116,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
           if (items.isEmpty) {
             return EmptyState(
               icon: Icons.check_circle_outline_rounded,
-              message: 'All Caught Up!',
-              subtitle: 'No pending scores to review.',
+              message: loc.translate('all_caught_up'),
+              subtitle: loc.translate('no_pending_scores'),
             );
           }
 
@@ -125,7 +130,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
-                  return _buildReviewCard(item, isDark)
+                  return _buildReviewCard(item, isDark, loc)
                       .animate()
                       .fadeIn(delay: (index * 40).ms)
                       .slideX(begin: 0.05, end: 0);
@@ -138,7 +143,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 
-  Widget _buildReviewCard(Map<String, dynamic> item, bool isDark) {
+  Widget _buildReviewCard(Map<String, dynamic> item, bool isDark, AppLocalizations loc) {
     final points = item['points'] ?? 0;
     final isPositive = points >= 0;
     final color = isPositive ? AppTheme.successColor : AppTheme.errorColor;
@@ -146,7 +151,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spaceMd),
       child: AppCard(
-        onTap: () => _showDetailsDialog(context, item),
+        onTap: () => _showDetailsDialog(context, item, loc),
         padding: const EdgeInsets.all(AppTheme.spaceMd),
         child: Row(
           children: [
@@ -174,7 +179,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item['memberName'] ?? 'Unknown Member',
+                    item['memberName'] ?? loc.translate('unknown_member'),
                     style: AppTheme.title18.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isDark ? AppTheme.darkTextColor : AppTheme.lightTextColor,
@@ -182,7 +187,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   ),
                   const SizedBox(height: AppTheme.spaceXs),
                   Text(
-                    '${item['tag']} • ${item['leaderName'] ?? "Unknown"}',
+                    '${item['tag']} • ${item['leaderName'] ?? loc.translate("unknown")}',
                     style: AppTheme.caption14.copyWith(
                       color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor,
                     ),
@@ -213,7 +218,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 
-  void _showDetailsDialog(BuildContext context, Map<String, dynamic> item) {
+  void _showDetailsDialog(BuildContext context, Map<String, dynamic> item, AppLocalizations loc) {
     showDialog(
       context: context,
       builder: (context) {
@@ -222,23 +227,23 @@ class _ReviewScreenState extends State<ReviewScreen> {
         return AlertDialog(
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
-          title: const Text('Review Transaction'),
+          title: Text(loc.translate('review_transaction')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildDetailTile(
-                  Icons.person_outline, 'Member', item['memberName'] ?? 'Unknown', isDark),
-              _buildDetailTile(Icons.stars_rounded, 'Points', '${item['points']}', isDark),
-              _buildDetailTile(Icons.label_outline, 'Category', item['tag'] ?? 'N/A', isDark),
-              _buildDetailTile(Icons.badge_outlined, 'Submitted By',
-                  item['leaderName'] ?? 'Unknown Leader', isDark),
-              _buildDetailTile(Icons.access_time, 'Timestamp',
+                  Icons.person_outline, loc.translate('member'), item['memberName'] ?? loc.translate('unknown'), isDark),
+              _buildDetailTile(Icons.stars_rounded, loc.translate('points'), '${item['points']}', isDark),
+              _buildDetailTile(Icons.label_outline, loc.translate('category'), item['tag'] ?? 'N/A', isDark),
+              _buildDetailTile(Icons.badge_outlined, loc.translate('submitted_by'),
+                  item['leaderName'] ?? loc.translate('unknown_leader'), isDark),
+              _buildDetailTile(Icons.access_time, loc.translate('timestamp'),
                   item['timestamp'].toString(), isDark),
               if (item['description'] != null &&
                   item['description'].toString().isNotEmpty) ...[
                 const Divider(height: 24),
                 Text(
-                  'Note: ${item['description']}',
+                  '${loc.translate('note')}: ${item['description']}',
                   style: TextStyle(
                       fontStyle: FontStyle.italic,
                       color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor),
@@ -252,22 +257,22 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      _handleAction(item['id'], 'REJECTED');
+                      _handleAction(context, item['id'], 'REJECTED', loc);
                       Navigator.pop(context);
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.errorColor,
                       side: BorderSide(color: AppTheme.errorColor),
                     ),
-                    child: const Text('Reject'),
+                    child: Text(loc.translate('reject')),
                   ),
                 ),
                 const SizedBox(width: AppTheme.spaceSm),
                 Expanded(
                   child: ActionButton(
-                    label: 'Approve',
+                    label: loc.translate('approve'),
                     onPressed: () {
-                      _handleAction(item['id'], 'APPROVED');
+                      _handleAction(context, item['id'], 'APPROVED', loc);
                       Navigator.pop(context);
                     },
                     type: ActionButtonType.primary,

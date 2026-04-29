@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../server/network_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_localizations.dart';
 
 class ConnectionScreen extends StatefulWidget {
   const ConnectionScreen({super.key});
@@ -37,19 +38,20 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("QR Connection")),
+      appBar: AppBar(title: Text(loc.translate("qr_connection"))),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _availableIps.isEmpty
-              ? _buildErrorState(isDark)
-              : _buildContent(isDark),
+              ? _buildErrorState(isDark, loc)
+              : _buildContent(isDark, loc),
     );
   }
 
-  Widget _buildErrorState(bool isDark) {
+  Widget _buildErrorState(bool isDark, AppLocalizations loc) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -64,7 +66,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "No Network Found",
+                  loc.translate("no_network_found"),
                   style: AppTheme.headline24.copyWith(
                     color:
                         isDark
@@ -74,7 +76,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Could not find a local IP address.\nPlease check your Wi-Fi connection.",
+                  loc.translate("no_network_subtitle"),
                   textAlign: TextAlign.center,
                   style: AppTheme.caption14.copyWith(
                     color:
@@ -89,7 +91,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     );
   }
 
-  Widget _buildContent(bool isDark) {
+  Widget _buildContent(bool isDark, AppLocalizations loc) {
     final String laptopIp = _selectedIp ?? _availableIps.first;
     final String connectionUrl = "http://$laptopIp:8080";
 
@@ -106,7 +108,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
             children: [
               // ─── Title ───────────────────────────────────────────────
               Text(
-                "Connect Leader Devices",
+                loc.translate("connect_leaders_title"),
                 style: AppTheme.headline24.copyWith(
                   color:
                       isDark ? AppTheme.darkTextColor : AppTheme.lightTextColor,
@@ -114,7 +116,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
               ).animate().fadeIn().slideY(begin: -0.1, end: 0),
               const SizedBox(height: AppTheme.spaceSm),
               Text(
-                "Scan the QR code from the Leader App",
+                loc.translate("scan_qr_subtitle"),
                 style: AppTheme.caption14.copyWith(
                   color:
                       isDark
@@ -235,8 +237,8 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
               _buildInstructionCard(
                 icon: Icons.wifi_rounded,
                 color: AppTheme.infoColor,
-                title: "Same Wi-Fi",
-                subtitle: "Ensure all devices are on the same network",
+                title: loc.translate("same_wifi_title"),
+                subtitle: loc.translate("same_wifi_subtitle"),
                 isDark: isDark,
                 delay: 300,
               ),
@@ -244,8 +246,8 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
               _buildInstructionCard(
                 icon: Icons.qr_code_scanner_rounded,
                 color: AppTheme.successColor,
-                title: "Scan & Connect",
-                subtitle: "Open the Leader App and scan this QR code",
+                title: loc.translate("scan_connect_title"),
+                subtitle: loc.translate("scan_connect_subtitle"),
                 isDark: isDark,
                 delay: 350,
               ),
@@ -253,8 +255,8 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
               _buildInstructionCard(
                 icon: Icons.verified_user_rounded,
                 color: AppTheme.warningColor,
-                title: "Approve Registration",
-                subtitle: "Approve the leader request in Leader Management",
+                title: loc.translate("approve_reg_title"),
+                subtitle: loc.translate("approve_reg_subtitle"),
                 isDark: isDark,
                 delay: 400,
               ),
@@ -262,7 +264,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
               const SizedBox(height: AppTheme.spaceXl),
 
               // ─── Troubleshooting ─────────────────────────────────────
-              _buildTroubleshootingSection(laptopIp, isDark),
+              _buildTroubleshootingSection(laptopIp, isDark, loc),
             ],
           ),
         ),
@@ -332,11 +334,11 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     ).animate().fadeIn(delay: delay.ms).slideX(begin: 0.05, end: 0);
   }
 
-  Widget _buildTroubleshootingSection(String ip, bool isDark) {
+  Widget _buildTroubleshootingSection(String ip, bool isDark, AppLocalizations loc) {
     return ExpansionTile(
       leading: Icon(Icons.build_circle_rounded, color: AppTheme.warningColor),
       title: Text(
-        "Troubleshooting",
+        loc.translate("troubleshooting"),
         style: AppTheme.body16.copyWith(fontWeight: FontWeight.bold),
       ),
       shape: RoundedRectangleBorder(
@@ -353,19 +355,19 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
       children: [
         _buildTip(
           Icons.security_rounded,
-          "Windows Firewall: Allow port 8080 for incoming traffic.",
+          loc.translate("firewall_tip"),
         ),
         _buildTip(
           Icons.network_wifi_rounded,
-          "Network Type: Set your Wi-Fi to 'Private' (not Public).",
+          loc.translate("network_type_tip"),
         ),
         _buildTip(
           Icons.open_in_browser_rounded,
-          "Test in Browser: Open http://$ip:8080/ping on your phone.",
+          loc.translate("test_browser_tip"),
         ),
         _buildTip(
           Icons.swap_horiz_rounded,
-          "IP Mismatch: Try selecting a different IP from the dropdown.",
+          loc.translate("ip_mismatch_tip"),
         ),
         const SizedBox(height: AppTheme.spaceSm),
       ],

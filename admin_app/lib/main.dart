@@ -3,6 +3,8 @@ import 'package:admin_app/server/tournament_server.dart';
 import 'package:admin_app/ui/my_home_page.dart';
 import 'package:admin_app/theme/app_theme.dart';
 import 'package:admin_app/providers/settings_provider.dart';
+import 'package:admin_app/providers/dashboard_provider.dart';
+import 'package:admin_app/services/storage_service.dart';
 import 'package:admin_app/utils/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,12 +12,27 @@ import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  DatabaseHelper().database; // Initialize the database
+  
+  // Initialize Core Services
+  final dbHelper = DatabaseHelper();
+  await dbHelper.database; 
+  final storageService = StorageService();
+  
+  // Start the Server
   final server = TournamentServer();
   await server.start();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => SettingsProvider(),
+    MultiProvider(
+      providers: [
+        Provider.value(value: storageService),
+        ChangeNotifierProvider(
+          create: (_) => SettingsProvider(storage: storageService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DashboardProvider(),
+        ),
+      ],
       child: const MyApp(),
     ),
   );

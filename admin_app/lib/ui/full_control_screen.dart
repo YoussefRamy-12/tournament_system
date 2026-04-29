@@ -1,21 +1,38 @@
 import 'package:admin_app/ui/entity_control_list_screen.dart';
 import 'package:flutter/material.dart';
+import '../utils/app_localizations.dart';
 
-class FullControlScreen extends StatelessWidget {
+class FullControlScreen extends StatefulWidget {
   const FullControlScreen({super.key});
 
   @override
+  State<FullControlScreen> createState() => _FullControlScreenState();
+}
+
+class _FullControlScreenState extends State<FullControlScreen> {
+  @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Admin Command Center"),
-          bottom: const TabBar(
+          title: Text(loc.translate("admin_command_center")),
+          bottom: TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.group_work), text: "Teams"),
-              Tab(icon: Icon(Icons.person), text: "Players"),
-              Tab(icon: Icon(Icons.shield), text: "Leaders"),
+              Tab(
+                icon: const Icon(Icons.group_work),
+                text: loc.translate("teams"),
+              ),
+              Tab(
+                icon: const Icon(Icons.person),
+                text: loc.translate("players"),
+              ),
+              Tab(
+                icon: const Icon(Icons.shield),
+                text: loc.translate("leaders"),
+              ),
             ],
           ),
         ),

@@ -1,5 +1,7 @@
 import 'package:admin_app/database/db_helper.dart';
 import 'package:flutter/material.dart';
+import '../utils/app_localizations.dart';
+import '../theme/app_theme.dart';
 
 class TeamRosterScreen extends StatelessWidget {
   final int teamId;
@@ -10,11 +12,13 @@ class TeamRosterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
       appBar: AppBar(
-        title: Text("$teamName Roster"),
-        // backgroundColor: Colors.transparent,
+        title: Text("$teamName ${loc.translate('roster')}"),
         elevation: 0,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -38,20 +42,20 @@ class TeamRosterScreen extends StatelessWidget {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
-                      "Member Name",
-                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                      loc.translate("member_name"),
+                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 16),
                     ),
                     Text(
-                      "Total Points",
-                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                      loc.translate("total_points"),
+                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 16),
                     ),
                   ],
                 ),
               ),
-              const Divider(color: Colors.white10, height: 1),
-              // Inside the build method of TeamRosterScreen, above the Expanded ListView
+              Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1),
+              
               FutureBuilder<Map<String, dynamic>>(
                 future: _dbHelper.getTeamSummary(teamId),
                 builder: (context, summarySnapshot) {
@@ -62,22 +66,27 @@ class TeamRosterScreen extends StatelessWidget {
                     margin: const EdgeInsets.all(16),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+                      boxShadow: isDark ? [] : [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+                      ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildStatItem(
-                          "Average",
+                          loc.translate("average"),
                           "${summary['teamAverage'].toStringAsFixed(1)}",
+                          isDark,
                         ),
                         _buildStatItem(
-                          "Top Player",
+                          loc.translate("top_player"),
                           "${summary['topPlayerName'] ?? 'N/A'}",
+                          isDark,
                         ),
-                        _buildStatItem("Members", "${summary['memberCount']}"),
+                        _buildStatItem(loc.translate("members"), "${summary['memberCount']}", isDark),
                       ],
                     ),
                   );
@@ -89,31 +98,30 @@ class TeamRosterScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   itemCount: members.length,
                   separatorBuilder:
-                      (context, index) => const Divider(color: Colors.white10),
+                      (context, index) => Divider(color: isDark ? Colors.white10 : Colors.black12),
                   itemBuilder: (context, index) {
                     final m = members[index];
                     final int score = m['memberTotal'] ?? 0;
 
                     return ListTile(
                       onTap: () {
-                        // REUSE your existing player details dialog here
-                        _showPlayerDetails(context, m, teamName);
+                        _showPlayerDetails(context, m, teamName, loc);
                       },
                       title: Text(
                         m['name'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 18,
                         ),
                       ),
                       trailing: Text(
-                        "$score pts",
+                        "$score ${loc.translate('pts')}",
                         style: TextStyle(
                           color:
                               score >= 0
                                   ? Colors.greenAccent
                                   : Colors.redAccent,
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -128,12 +136,12 @@ class TeamRosterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
+  Widget _buildStatItem(String label, String value, bool isDark) {
     return Column(
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white54, fontSize: 14),
+          style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 14),
         ),
         const SizedBox(height: 8),
         Text(
@@ -148,13 +156,12 @@ class TeamRosterScreen extends StatelessWidget {
     );
   }
 
-  // Helper to trigger the dialog you want
   void _showPlayerDetails(
     BuildContext context,
     Map<String, dynamic> member,
     String tName,
+    AppLocalizations loc,
   ) async {
-    // Prepare the data map to match what your Player Details dialog expects
     final player = {
       'id': member['id'],
       'name': member['name'],
@@ -163,23 +170,20 @@ class TeamRosterScreen extends StatelessWidget {
     };
 
     final allTransactions = await _dbHelper.getAllTransactions();
-
     final playerHistory =
         allTransactions.where((t) => t['target_id'] == player['id']).toList();
 
-    // Call your existing dialog function here
-    // showDialog(context: context, builder: (...) => ...)
     if (!context.mounted) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            backgroundColor: const Color(
-              0xFF1E293B,
-            ), // Dark theme for projector
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             title: Text(
               player['name'],
-              style: const TextStyle(color: Colors.white, fontSize: 28),
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 24),
             ),
             content: SizedBox(
               width: 400,
@@ -188,42 +192,41 @@ class TeamRosterScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Team: ${player['teamName']}",
-                    style: const TextStyle(color: Colors.amber, fontSize: 18),
+                    "${loc.translate('team')}: ${player['teamName']}",
+                    style: const TextStyle(color: Colors.amber, fontSize: 16),
                   ),
                   Text(
-                    "Member ID: ${player['id']}",
-                    style: const TextStyle(color: Colors.white54),
+                    "ID: ${player['id']}",
+                    style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
                   ),
-                  const Divider(color: Colors.white24, height: 30),
+                  const Divider(height: 30),
 
-                  const Text(
-                    "TOTAL POINTS",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  Text(
+                    loc.translate("total_points").toUpperCase(),
+                    style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 12),
                   ),
                   Text(
-                    "${player['totalScore'] ?? 0} pts",
+                    "${player['totalScore'] ?? 0} ${loc.translate('pts')}",
                     style: TextStyle(
                       color:
                           player['totalScore'] >= 0
                               ? Colors.greenAccent
                               : Colors.redAccent,
-                      fontSize: 36,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
 
                   const SizedBox(height: 20),
-                  const Text(
-                    "RECENT TRANSACTIONS",
-                    style: TextStyle(
+                  Text(
+                    loc.translate("recent_transactions"),
+                    style: const TextStyle(
                       color: Colors.amber,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 10),
 
-                  // Show recent history using your existing transaction data
                   ...playerHistory
                       .take(5)
                       .map(
@@ -244,14 +247,14 @@ class TeamRosterScreen extends StatelessWidget {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  "${t['tag'] ?? 'Points'}",
-                                  style: const TextStyle(color: Colors.white70),
+                                  "${t['tag'] ?? loc.translate('points')}",
+                                  style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
                                 ),
                               ),
                               Text(
                                 "${t['timestamp']?.toString().split(' ')[0]}",
-                                style: const TextStyle(
-                                  color: Colors.white38,
+                                style: TextStyle(
+                                  color: isDark ? Colors.white38 : Colors.black38,
                                   fontSize: 12,
                                 ),
                               ),
@@ -265,9 +268,9 @@ class TeamRosterScreen extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "CLOSE",
-                  style: TextStyle(color: Colors.amber),
+                child: Text(
+                  loc.translate("close").toUpperCase(),
+                  style: const TextStyle(color: Colors.amber),
                 ),
               ),
             ],

@@ -4,6 +4,7 @@ import '../database/db_helper.dart';
 import '../theme/app_theme.dart';
 import '../components/app_components.dart';
 import '../components/team_details_dialog.dart';
+import '../utils/app_localizations.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -18,10 +19,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Team Leaderboard'),
+        title: Text(loc.translate('team_leaderboard')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -40,11 +42,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           final leaderboard = snapshot.data!;
 
           if (leaderboard.isEmpty) {
-            return const EmptyState(
+            return EmptyState(
               icon: Icons.leaderboard_rounded,
-              message: "No Teams Yet",
-              subtitle:
-                  "Import tournament data in System Setup to get started.",
+              message: loc.translate("no_teams_yet"),
+              subtitle: loc.translate("no_teams_subtitle"),
             );
           }
 
@@ -62,7 +63,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 itemBuilder: (context, index) {
                   final team = leaderboard[index];
                   final int score = team['totalScore'] ?? 0;
-                  return _buildTeamCard(team, score, index, isDark)
+                  return _buildTeamCard(team, score, index, isDark, loc)
                       .animate()
                       .fadeIn(delay: (index * 60).ms)
                       .slideX(begin: 0.06, end: 0);
@@ -80,6 +81,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     int score,
     int index,
     bool isDark,
+    AppLocalizations loc,
   ) {
     final isTop3 = index < 3;
     final rankColor = _getRankColor(index);
@@ -132,7 +134,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      team['name'] ?? 'Unknown',
+                      team['name'] ?? loc.translate('unknown'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppTheme.body16.copyWith(
@@ -145,7 +147,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ),
                     if (team['memberCount'] != null)
                       Text(
-                        "${team['memberCount']} members",
+                        "${team['memberCount']} ${loc.translate('members')}",
                         style: AppTheme.label12.copyWith(
                           color:
                               isDark

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/storage_service.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  static const String _themeKey = "theme_mode";
-  static const String _langKey = "language_code";
-  static const String _fontSizeKey = "font_size_factor";
+  final StorageService _storage;
 
   ThemeMode _themeMode = ThemeMode.dark;
   Locale _locale = const Locale('en');
@@ -15,33 +13,30 @@ class SettingsProvider extends ChangeNotifier {
   double get fontSizeFactor => _fontSizeFactor;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
-  SettingsProvider() {
+  SettingsProvider({required StorageService storage}) : _storage = storage {
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    final themeStr = prefs.getString(_themeKey);
-    if (themeStr != null) {
-      _themeMode = themeStr == 'dark' ? ThemeMode.dark : ThemeMode.light;
-    }
+    final theme = await _storage.getThemeMode();
+    final lang = await _storage.getLanguageCode();
+    final font = await _storage.getFontSizeFactor();
 
-    final langStr = prefs.getString(_langKey);
-    if (langStr != null) {
-      _locale = Locale(langStr);
+    if (theme != null) {
+      _themeMode = theme == 'dark' ? ThemeMode.dark : ThemeMode.light;
     }
+    if (lang != null) {
+      _locale = Locale(lang);
+    }
+    _fontSizeFactor = font;
 
-    _fontSizeFactor = prefs.getDouble(_fontSizeKey) ?? 1.0;
-    
     notifyListeners();
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_themeKey, mode == ThemeMode.dark ? 'dark' : 'light');
+    await _storage.saveThemeMode(mode == ThemeMode.dark ? 'dark' : 'light');
   }
 
   Future<void> toggleTheme() async {
@@ -51,14 +46,12 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setLocale(Locale locale) async {
     _locale = locale;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_langKey, locale.languageCode);
+    await _storage.saveLanguageCode(locale.languageCode);
   }
 
   Future<void> setFontSizeFactor(double factor) async {
     _fontSizeFactor = factor;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_fontSizeKey, factor);
+    await _storage.saveFontSizeFactor(factor);
   }
 }

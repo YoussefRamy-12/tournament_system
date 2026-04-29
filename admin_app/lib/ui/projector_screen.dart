@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../database/db_helper.dart';
+import '../utils/app_localizations.dart';
 
 class ProjectorStatsScreen extends StatefulWidget {
   const ProjectorStatsScreen({super.key});
@@ -49,11 +50,12 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
+
     return Scaffold(
-      // backgroundColor: const Color(0xFF020617), // Deepest Navy
       appBar: AppBar(
         title: Text(
-          "TOURNAMENT ARENA",
+          loc.translate("tournament_arena"),
           style: GoogleFonts.orbitron(
             letterSpacing: 2,
             fontWeight: FontWeight.bold,
@@ -75,7 +77,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 48.0, vertical: 24),
           child: Column(
             children: [
-              _buildMainTitle(),
+              _buildMainTitle(loc),
               const SizedBox(height: 48),
               Expanded(
                 child: Row(
@@ -84,18 +86,20 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
                     Expanded(
                       flex: 6,
                       child: _buildGlassPanel(
-                        title: "TEAM STANDINGS",
+                        title: loc.translate("team_standings"),
                         icon: Icons.groups_rounded,
-                        child: _buildTeamList(),
+                        child: _buildTeamList(loc),
+                        loc: loc,
                       ),
                     ),
                     const SizedBox(width: 48),
                     Expanded(
                       flex: 4,
                       child: _buildGlassPanel(
-                        title: "TOP PERFORMERS",
+                        title: loc.translate("top_performers"),
                         icon: Icons.emoji_events_rounded,
-                        child: _buildPlayerList(),
+                        child: _buildPlayerList(loc),
+                        loc: loc,
                       ),
                     ),
                   ],
@@ -108,13 +112,13 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
     );
   }
 
-  Widget _buildMainTitle() {
+  Widget _buildMainTitle(AppLocalizations loc) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return Column(
       children: [
         Text(
-          "LEADERBOARD",
+          loc.translate("leaderboard"),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 64,
             fontWeight: FontWeight.w900,
@@ -140,6 +144,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
     required String title,
     required IconData icon,
     required Widget child,
+    required AppLocalizations loc,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -177,7 +182,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
     ).animate().fadeIn(duration: 1.seconds).slideY(begin: 0.05, end: 0);
   }
 
-  Widget _buildTeamList() {
+  Widget _buildTeamList(AppLocalizations loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_teams.isEmpty) return const Center(child: CircularProgressIndicator());
 
@@ -212,7 +217,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
               const SizedBox(width: 24),
               Expanded(
                 child: Text(
-                  team['name'] ?? 'Unknown Team',
+                  team['name'] ?? loc.translate('unknown_team'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 28,
                     fontWeight: isTop3 ? FontWeight.bold : FontWeight.w500,
@@ -262,12 +267,12 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
     );
   }
 
-  Widget _buildPlayerList() {
+  Widget _buildPlayerList(AppLocalizations loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_top10Players.isEmpty) {
       return Center(
         child: Text(
-          "No scores yet",
+          loc.translate("no_scores_yet"),
           style: TextStyle(color: isDark ? Colors.white30 : Colors.black38),
         ),
       );
@@ -303,7 +308,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              player['name'] ?? 'Unknown',
+                              player['name'] ?? loc.translate('unknown'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -311,7 +316,7 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
                               ),
                             ),
                             Text(
-                              player['teamName'] ?? 'No Team',
+                              player['teamName'] ?? loc.translate('no_team'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 color: isDark ? Colors.white54 : Colors.black54,

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../database/db_helper.dart';
 import '../theme/app_theme.dart';
 import '../components/app_components.dart';
+import '../utils/app_localizations.dart';
 
 class AdminHistoryScreen extends StatefulWidget {
   const AdminHistoryScreen({super.key});
@@ -25,10 +26,11 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transaction History'),
+        title: Text(loc.translate('transaction_history')),
         bottom: TabBar(
           controller: _tabController,
           indicatorSize: TabBarIndicatorSize.label,
@@ -38,10 +40,10 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
               : AppTheme.lightMutedTextColor,
           indicatorColor: AppTheme.primaryColor,
           indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'Approved'),
-            Tab(text: 'Pending'),
-            Tab(text: 'Rejected'),
+          tabs: [
+            Tab(text: loc.translate('approved')),
+            Tab(text: loc.translate('pending')),
+            Tab(text: loc.translate('rejected')),
           ],
         ),
       ),
@@ -60,9 +62,9 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildHistoryList(approved, 'APPROVED', isDark),
-              _buildHistoryList(pending, 'PENDING', isDark),
-              _buildHistoryList(rejected, 'REJECTED', isDark),
+              _buildHistoryList(approved, 'APPROVED', isDark, loc),
+              _buildHistoryList(pending, 'PENDING', isDark, loc),
+              _buildHistoryList(rejected, 'REJECTED', isDark, loc),
             ],
           );
         },
@@ -71,12 +73,12 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
   }
 
   Widget _buildHistoryList(
-      List<Map<String, dynamic>> items, String status, bool isDark) {
+      List<Map<String, dynamic>> items, String status, bool isDark, AppLocalizations loc) {
     if (items.isEmpty) {
       return EmptyState(
         icon: Icons.history_rounded,
-        message: 'No Transactions',
-        subtitle: 'There are no transactions with $status status',
+        message: loc.translate('no_transactions'),
+        subtitle: loc.translate('no_transactions_subtitle'),
       );
     }
 
@@ -89,7 +91,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];
-            return _buildHistoryCard(item, isDark)
+            return _buildHistoryCard(item, isDark, loc)
                 .animate()
                 .fadeIn(delay: (index * 30).ms)
                 .slideY(begin: 0.05, end: 0);
@@ -99,7 +101,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
     );
   }
 
-  Widget _buildHistoryCard(Map<String, dynamic> item, bool isDark) {
+  Widget _buildHistoryCard(Map<String, dynamic> item, bool isDark, AppLocalizations loc) {
     final points = item['points'] ?? 0;
     final isPositive = points >= 0;
     final color = isPositive ? AppTheme.successColor : AppTheme.errorColor;
@@ -107,7 +109,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spaceSm),
       child: AppCard(
-        onTap: () => _showStatusPicker(context, item),
+        onTap: () => _showStatusPicker(context, item, loc),
         padding: const EdgeInsets.all(AppTheme.spaceSm),
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spaceSm),
@@ -129,7 +131,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
             ),
           ),
           title: Text(
-            item['memberName'] ?? 'Unknown Member',
+            item['memberName'] ?? loc.translate('unknown_member'),
             style: AppTheme.body16.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? AppTheme.darkTextColor : AppTheme.lightTextColor,
@@ -166,7 +168,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
     );
   }
 
-  void _showStatusPicker(BuildContext context, Map<String, dynamic> item) {
+  void _showStatusPicker(BuildContext context, Map<String, dynamic> item, AppLocalizations loc) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -181,69 +183,71 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
                 top: Radius.circular(AppTheme.radiusXl)),
           ),
           child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: AppTheme.spaceLg),
-                    decoration: BoxDecoration(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: AppTheme.spaceLg),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : Colors.black.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    loc.translate('manage_transaction'),
+                    style: AppTheme.title18.copyWith(
+                      fontWeight: FontWeight.bold,
                       color: isDark
-                          ? Colors.white.withValues(alpha: 0.2)
-                          : Colors.black.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(2),
+                          ? AppTheme.darkTextColor
+                          : AppTheme.lightTextColor,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                Text(
-                  "Manage Transaction",
-                  style: AppTheme.title18.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppTheme.darkTextColor
-                        : AppTheme.lightTextColor,
+                  const SizedBox(height: AppTheme.spaceLg),
+                  _buildStatusBtn(context, item['id'], 'APPROVED',
+                      AppTheme.successColor, isDark, loc),
+                  const SizedBox(height: AppTheme.spaceSm),
+                  _buildStatusBtn(context, item['id'], 'PENDING',
+                      AppTheme.warningColor, isDark, loc),
+                  const SizedBox(height: AppTheme.spaceSm),
+                  _buildStatusBtn(context, item['id'], 'REJECTED',
+                      AppTheme.errorColor, isDark, loc),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppTheme.spaceMd),
+                    child: Divider(),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppTheme.spaceLg),
-                _buildStatusBtn(context, item['id'], 'APPROVED',
-                    AppTheme.successColor, isDark),
-                const SizedBox(height: AppTheme.spaceSm),
-                _buildStatusBtn(context, item['id'], 'PENDING',
-                    AppTheme.warningColor, isDark),
-                const SizedBox(height: AppTheme.spaceSm),
-                _buildStatusBtn(context, item['id'], 'REJECTED',
-                    AppTheme.errorColor, isDark),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppTheme.spaceMd),
-                  child: Divider(),
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(AppTheme.spaceSm),
-                    decoration: BoxDecoration(
-                      color: AppTheme.errorColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(AppTheme.spaceSm),
+                      decoration: BoxDecoration(
+                        color: AppTheme.errorColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                      child: Icon(Icons.delete_forever_rounded,
+                          color: AppTheme.errorColor),
                     ),
-                    child: Icon(Icons.delete_forever_rounded,
-                        color: AppTheme.errorColor),
+                    title: Text(
+                      loc.translate('delete_permanently'),
+                      style: AppTheme.body16.copyWith(
+                          color: AppTheme.errorColor,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _confirmDelete(context, item['id'], loc);
+                    },
                   ),
-                  title: Text(
-                    "Delete Permanently",
-                    style: AppTheme.body16.copyWith(
-                        color: AppTheme.errorColor,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _confirmDelete(context, item['id']);
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -252,7 +256,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
   }
 
   Widget _buildStatusBtn(BuildContext context, String id, String status,
-      Color color, bool isDark) {
+      Color color, bool isDark, AppLocalizations loc) {
     return InkWell(
       onTap: () async {
         await _dbHelper.updateTransactionStatus(id, status);
@@ -274,7 +278,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
             Icon(Icons.circle, size: 12, color: color),
             const SizedBox(width: AppTheme.spaceMd),
             Text(
-              "Mark as $status",
+              "${loc.translate('mark_as')} ${loc.translate(status.toLowerCase())}",
               style: AppTheme.body16.copyWith(
                   color: color, fontWeight: FontWeight.w600),
             ),
@@ -284,19 +288,18 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
     );
   }
 
-  void _confirmDelete(BuildContext context, String id) {
+  void _confirmDelete(BuildContext context, String id, AppLocalizations loc) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
-        title: const Text("Delete Transaction?"),
-        content: const Text(
-            "This action cannot be undone and will update the leaderboard immediately."),
+        title: Text(loc.translate('delete_transaction_title')),
+        content: Text(loc.translate('delete_transaction_content')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
+            child: Text(loc.translate('cancel')),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -309,8 +312,8 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
               Navigator.pop(ctx);
               setState(() {});
             },
-            child: const Text("Delete",
-                style: TextStyle(color: Colors.white)),
+            child: Text(loc.translate('delete'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

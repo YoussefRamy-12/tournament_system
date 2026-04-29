@@ -4,6 +4,7 @@ import 'package:admin_app/database/db_helper.dart';
 import 'package:admin_app/server/online_leader_tracker.dart';
 import '../theme/app_theme.dart';
 import '../components/app_components.dart';
+import '../utils/app_localizations.dart';
 
 class LeaderApprovalScreen extends StatefulWidget {
   const LeaderApprovalScreen({super.key});
@@ -23,7 +24,7 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
     _tabController = TabController(length: 3, vsync: this);
   }
 
-  void _handleAction(String id, String status) async {
+  void _handleAction(BuildContext context, String id, String status, AppLocalizations loc) async {
     await _dbHelper.updateLeaderStatus(id, status);
 
     if (status == 'APPROVED') {
@@ -34,27 +35,28 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
           id, '{"type": "status_update", "status": "REJECTED"}');
     }
 
-    if (mounted) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Leader status updated to $status'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
-          backgroundColor: AppTheme.getStatusColor(status),
-        ),
-      );
-    }
+    if (!context.mounted) return;
+    setState(() {});
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${loc.translate('status_updated')} ${loc.translate(status.toLowerCase())}'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
+        backgroundColor: AppTheme.getStatusColor(status),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leader Management'),
+        title: Text(loc.translate('leader_management')),
         bottom: TabBar(
           controller: _tabController,
           indicatorSize: TabBarIndicatorSize.label,
@@ -64,10 +66,10 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
               : AppTheme.lightMutedTextColor,
           indicatorColor: AppTheme.primaryColor,
           indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'Pending'),
-            Tab(text: 'Approved'),
-            Tab(text: 'Blocked'),
+          tabs: [
+            Tab(text: loc.translate('pending')),
+            Tab(text: loc.translate('approved')),
+            Tab(text: loc.translate('blocked')),
           ],
         ),
       ),
@@ -86,9 +88,9 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildLeaderList(pending, 'PENDING', isDark),
-              _buildLeaderList(approved, 'APPROVED', isDark),
-              _buildLeaderList(rejected, 'REJECTED', isDark),
+              _buildLeaderList(pending, 'PENDING', isDark, loc),
+              _buildLeaderList(approved, 'APPROVED', isDark, loc),
+              _buildLeaderList(rejected, 'REJECTED', isDark, loc),
             ],
           );
         },
@@ -97,12 +99,12 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
   }
 
   Widget _buildLeaderList(
-      List<Map<String, dynamic>> items, String status, bool isDark) {
+      List<Map<String, dynamic>> items, String status, bool isDark, AppLocalizations loc) {
     if (items.isEmpty) {
       return EmptyState(
         icon: Icons.people_outline_rounded,
-        message: 'No leaders here',
-        subtitle: 'There are no leaders with $status status',
+        message: loc.translate('no_leaders_here'),
+        subtitle: '${loc.translate('no_transactions_subtitle')}', // Reusing subtitle key
       );
     }
 
@@ -115,7 +117,7 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
           itemCount: items.length,
           itemBuilder: (context, index) {
             final leader = items[index];
-            return _buildLeaderCard(leader, isDark)
+            return _buildLeaderCard(leader, isDark, loc)
                 .animate()
                 .fadeIn(delay: (index * 40).ms)
                 .slideY(begin: 0.05, end: 0);
@@ -125,7 +127,7 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
     );
   }
 
-  Widget _buildLeaderCard(Map<String, dynamic> leader, bool isDark) {
+  Widget _buildLeaderCard(Map<String, dynamic> leader, bool isDark, AppLocalizations loc) {
     final String currentStatus = leader['status'];
     final String leaderId = leader['id'];
     final color = AppTheme.getStatusColor(currentStatus);
@@ -185,7 +187,7 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    leader['name'] ?? 'Unknown Name',
+                    leader['name'] ?? loc.translate('unknown_name'),
                     style: AppTheme.body16.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isDark
@@ -219,15 +221,15 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
                   IconButton(
                     icon: Icon(Icons.check_circle_rounded,
                         color: AppTheme.successColor),
-                    tooltip: 'Approve',
-                    onPressed: () => _handleAction(leaderId, 'APPROVED'),
+                    tooltip: loc.translate('approve'),
+                    onPressed: () => _handleAction(context, leaderId, 'APPROVED', loc),
                   ),
                 if (currentStatus != 'REJECTED')
                   IconButton(
                     icon: Icon(Icons.block_rounded,
                         color: AppTheme.errorColor),
-                    tooltip: 'Block',
-                    onPressed: () => _handleAction(leaderId, 'REJECTED'),
+                    tooltip: loc.translate('block'),
+                    onPressed: () => _handleAction(context, leaderId, 'REJECTED', loc),
                   ),
               ],
             ),
