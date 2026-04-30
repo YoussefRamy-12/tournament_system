@@ -116,9 +116,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: (connectivity.isOnline
-                          ? Colors.green
-                          : Colors.red),
+                      color: (connectivity.isOnline ? Colors.green : Colors.red)
+                          .withOpacity(0.4),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),
@@ -133,7 +132,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
           ),
         ],
       ),
-      body: connectivity.isOnline == false || connectivity.isConnecting == true
+      body: connectivity.isOnline == false && connectivity.isConnecting == false
           ? const SkeletonLoader()
           : connectivity.connectionFailed
           ? const ConnectionFailedScreen()
@@ -267,7 +266,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          gradient: gradient,
+          gradient: gradient.withOpacity(0.1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -279,7 +278,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: gradient.colors.first,
+                    color: gradient.colors.first.withOpacity(0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
