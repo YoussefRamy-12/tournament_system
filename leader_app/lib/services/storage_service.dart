@@ -83,7 +83,7 @@ class StorageService {
 
   Future<void> clearRegistration() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_leaderIdKey);
+    // Keep leaderId for persistent device identity
     await prefs.remove(_leaderNameKey);
     await prefs.remove(_isRegisteredKey);
   }

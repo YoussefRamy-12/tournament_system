@@ -62,8 +62,15 @@ class AuthProvider with ChangeNotifier {
 
     if (isAvailable) {
       await _storage.saveUrl(url);
-      _status = AuthStatus.registering;
-      notifyListeners();
+      
+      final registered = await _storage.isRegistered();
+      if (registered) {
+        // If already registered, immediately check approval status on the new URL
+        await checkApproval();
+      } else {
+        _status = AuthStatus.registering;
+        notifyListeners();
+      }
       return true;
     } else {
       _errorMessage = "Server not available at $url";
