@@ -104,6 +104,9 @@ class AuthProvider with ChangeNotifier {
 
     if (url == null) return;
 
+    _isInitializing = true;
+    notifyListeners();
+
     final data = await _api.checkLeaderStatus(url, leaderId);
     final result = data?['status'] ?? 'ERROR';
     
@@ -130,13 +133,14 @@ class AuthProvider with ChangeNotifier {
       await _storage.clearRegistration();
       _status = AuthStatus.scanning;
       _pollingTimer?.cancel();
+    } else if (result == 'CONNECTION_ERROR') {
+      _status = AuthStatus.error;
     } else {
       _status = AuthStatus.waitingApproval;
     }
     
-    if (oldStatus != _status) {
-      notifyListeners();
-    }
+    _isInitializing = false;
+    notifyListeners();
   }
 
   void logout() async {

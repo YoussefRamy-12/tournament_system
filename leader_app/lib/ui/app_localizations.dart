@@ -115,6 +115,9 @@ class AppLocalizations {
       'success': 'Success',
       'score_another': 'Score Another Member',
       'back_to_home': 'Back to Home',
+      'connection_failed_msg': 'We could not reach the server. Please ensure the server is running and your device is on the same network.',
+      'retry': 'Retry Connection',
+      're_scan_qr': 'Re-scan QR Code',
     },
     'ar': {
       'settings': 'الإعدادات',
@@ -220,6 +223,9 @@ class AppLocalizations {
       'success': 'نجاح',
       'score_another': 'تسجيل نقاط لعضو آخر',
       'back_to_home': 'العودة للرئيسية',
+      'connection_failed_msg': 'تعذر الاتصال بالخادم. يرجى التأكد من تشغيل الخادم وأن جهازك متصل بنفس الشبكة.',
+      'retry': 'إعادة محاولة الاتصال',
+      're_scan_qr': 'إعادة مسح رمز QR',
     },
   };
 

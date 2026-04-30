@@ -8,27 +8,41 @@ class ConnectivityProvider with ChangeNotifier {
   final StorageService _storage;
   WebSocketChannel? _channel;
   Timer? _heartbeatTimer;
-  
+
   bool _isOnline = false;
   bool _isConnecting = false;
-    void Function(String)? onStatusUpdate;
+  bool _connectionFailed = false;
+  Timer? _connectionTimeoutTimer;
+  void Function(String)? onStatusUpdate;
   void Function(String)? onProfileUpdate;
 
   bool get isOnline => _isOnline;
   bool get isConnecting => _isConnecting;
+  bool get connectionFailed => _connectionFailed;
 
   ConnectivityProvider({required StorageService storage}) : _storage = storage;
 
   Future<void> connect() async {
     if (_isOnline || _isConnecting) return;
-    
+
     final baseUrl = await _storage.getUrl();
     final leaderId = await _storage.getOrGenerateLeaderId();
 
     if (baseUrl == null) return;
 
     _isConnecting = true;
+    _connectionFailed = false;
     notifyListeners();
+
+    // Set timeout for initial connection
+    _connectionTimeoutTimer?.cancel();
+    _connectionTimeoutTimer = Timer(const Duration(seconds: 15), () {
+      if (!_isOnline && _isConnecting) {
+        _isConnecting = false;
+        _connectionFailed = true;
+        notifyListeners();
+      }
+    });
 
     // Ensure any old connection is closed
     _stopHeartbeat();
@@ -50,6 +64,8 @@ class ConnectivityProvider with ChangeNotifier {
             if (data['status'] == 'connected') {
               _channel?.sink.add(leaderId);
               _isConnecting = false;
+              _connectionTimeoutTimer?.cancel();
+              _connectionFailed = false;
               _setOnline(true);
             } else if (data['type'] == 'status_update') {
               onStatusUpdate?.call(data['status']);
@@ -117,8 +133,16 @@ class ConnectivityProvider with ChangeNotifier {
     });
   }
 
+  void resetFailure() {
+    _connectionFailed = false;
+    _isConnecting = false;
+    _connectionTimeoutTimer?.cancel();
+    notifyListeners();
+  }
+
   void disconnect() {
     _stopHeartbeat();
+    _connectionTimeoutTimer?.cancel();
     _channel?.sink.close();
     _channel = null;
     _setOnline(false);

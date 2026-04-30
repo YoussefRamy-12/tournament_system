@@ -16,6 +16,8 @@ import 'ui/my_home_page.dart';
 import 'ui/registration_screen.dart';
 import 'ui/scanner_screen.dart';
 import 'ui/waiting_approval_screen.dart';
+import 'ui/connection_failed_screen.dart';
+import 'ui/widgets/skeleton_loader.dart';
 import 'ui/theme/app_theme.dart';
 
 void main() async {
@@ -30,16 +32,11 @@ void main() async {
         Provider.value(value: storageService),
         Provider.value(value: apiService),
         ChangeNotifierProvider(
-          create: (_) => SettingsProvider(
-            storage: storageService,
-            api: apiService,
-          ),
+          create: (_) =>
+              SettingsProvider(storage: storageService, api: apiService),
         ),
         ChangeNotifierProxyProvider<SettingsProvider, AuthProvider>(
-          create: (_) => AuthProvider(
-            api: apiService,
-            storage: storageService,
-          ),
+          create: (_) => AuthProvider(api: apiService, storage: storageService),
           update: (_, settings, auth) {
             auth!.onNameUpdated = (newName) {
               // Only update if it's actually different to avoid rebuild loops
@@ -51,9 +48,7 @@ void main() async {
           },
         ),
         ChangeNotifierProxyProvider<SettingsProvider, ConnectivityProvider>(
-          create: (_) => ConnectivityProvider(
-            storage: storageService,
-          ),
+          create: (_) => ConnectivityProvider(storage: storageService),
           update: (_, settings, connectivity) {
             connectivity!.onProfileUpdate = (newName) {
               if (settings.leaderName != newName) {
@@ -64,10 +59,8 @@ void main() async {
           },
         ),
         ChangeNotifierProvider(
-          create: (_) => TournamentProvider(
-            api: apiService,
-            storage: storageService,
-          ),
+          create: (_) =>
+              TournamentProvider(api: apiService, storage: storageService),
         ),
       ],
       child: const TournamentApp(),
@@ -80,13 +73,44 @@ class TournamentApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<SettingsProvider, AuthProvider>(
-      builder: (context, settings, auth, child) {
+    return Consumer3<SettingsProvider, AuthProvider, ConnectivityProvider>(
+      builder: (context, settings, auth, connectivity, child) {
         if (auth.isInitializing) {
-          return const MaterialApp(
-            home: Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Tournament Leader',
+            theme: AppTheme.lightTheme(settings.locale),
+            darkTheme: AppTheme.darkTheme(settings.locale),
+            themeMode: settings.themeMode,
+            locale: settings.locale,
+            localizationsDelegates: const [
+              AppLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en', ''), Locale('ar', '')],
+            home: const SkeletonLoader(),
+          );
+        }
+
+        // Global Connection Failure Screen
+        if (connectivity.connectionFailed) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Tournament Leader',
+            theme: AppTheme.lightTheme(settings.locale),
+            darkTheme: AppTheme.darkTheme(settings.locale),
+            themeMode: settings.themeMode,
+            locale: settings.locale,
+            localizationsDelegates: const [
+              AppLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en', ''), Locale('ar', '')],
+            home: const ConnectionFailedScreen(),
           );
         }
 
@@ -106,7 +130,7 @@ class TournamentApp extends StatelessWidget {
             initialScreen = const MyHomePage(title: 'Home');
             break;
           case AuthStatus.error:
-            initialScreen = const ScannerScreen(); // Fallback
+            initialScreen = const ConnectionFailedScreen();
             break;
         }
 
@@ -123,10 +147,7 @@ class TournamentApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('en', ''),
-            Locale('ar', ''),
-          ],
+          supportedLocales: const [Locale('en', ''), Locale('ar', '')],
           builder: (context, child) {
             if (child == null) return const SizedBox.shrink();
             child = ResponsiveBreakpoints.builder(
@@ -138,7 +159,8 @@ class TournamentApp extends StatelessWidget {
                 const Breakpoint(start: 1921, end: double.infinity, name: '4K'),
               ],
             );
-            final mediaQueryData = MediaQuery.maybeOf(context) ?? const MediaQueryData();
+            final mediaQueryData =
+                MediaQuery.maybeOf(context) ?? const MediaQueryData();
             return MediaQuery(
               data: mediaQueryData.copyWith(
                 textScaler: TextScaler.linear(settings.fontSizeFactor),
@@ -159,4 +181,3 @@ class TournamentApp extends StatelessWidget {
     );
   }
 }
-
