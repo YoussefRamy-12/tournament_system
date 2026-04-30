@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:leader_app/providers/auth_provider.dart';
 import 'package:leader_app/providers/connectivity_provider.dart';
 import 'package:leader_app/providers/settings_provider.dart';
+import 'package:leader_app/ui/connection_failed_screen.dart';
 import 'package:leader_app/ui/history_screen.dart';
 import 'package:leader_app/ui/member_selector.dart';
 import 'package:leader_app/ui/scanner_screen.dart';
@@ -9,6 +10,7 @@ import 'package:leader_app/ui/settings_screen.dart';
 import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
+import 'package:leader_app/ui/widgets/skeleton_loader.dart';
 import 'package:provider/provider.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -114,8 +116,9 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: (connectivity.isOnline ? Colors.green : Colors.red)
-                          .withOpacity(0.4),
+                      color: (connectivity.isOnline
+                          ? Colors.green
+                          : Colors.red),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),
@@ -130,118 +133,124 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [AppTheme.darkBg, AppTheme.darkSurface]
-                : [AppTheme.lightBg, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24.0),
+      body: connectivity.isOnline == false || connectivity.isConnecting == true
+          ? const SkeletonLoader()
+          : connectivity.connectionFailed
+          ? const ConnectionFailedScreen()
+          : Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [AppTheme.darkBg, AppTheme.darkSurface]
+                      : [AppTheme.lightBg, Colors.white],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: SafeArea(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      loc.translate('app_title'),
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.translate('app_title'),
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
                           ),
+                          const SizedBox(height: 8),
+                          Consumer<SettingsProvider>(
+                            builder: (context, settings, _) {
+                              return Text(
+                                loc.translateWithParam(
+                                  'welcome_back',
+                                  'name',
+                                  settings.leaderName,
+                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                    ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Consumer<SettingsProvider>(
-                      builder: (context, settings, _) {
-                        return Text(
-                          loc.translateWithParam(
-                            'welcome_back',
-                            'name',
-                            settings.leaderName,
-                          ),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: isDark ? Colors.white70 : Colors.black54,
+                    Expanded(
+                      child: GridView.count(
+                        crossAxisCount: 2,
+                        padding: const EdgeInsets.all(24),
+                        mainAxisSpacing: 20,
+                        crossAxisSpacing: 20,
+                        children: [
+                          _buildMenuCard(
+                            context,
+                            loc.translate('scan_qr'),
+                            Icons.qr_code_scanner_rounded,
+                            AppTheme.primaryGradient,
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ScannerScreen(),
                               ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  padding: const EdgeInsets.all(24),
-                  mainAxisSpacing: 20,
-                  crossAxisSpacing: 20,
-                  children: [
-                    _buildMenuCard(
-                      context,
-                      loc.translate('scan_qr'),
-                      Icons.qr_code_scanner_rounded,
-                      AppTheme.primaryGradient,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ScannerScreen(),
-                        ),
-                      ),
-                    ),
-                    _buildMenuCard(
-                      context,
-                      loc.translate('select_member'),
-                      Icons.people_alt_rounded,
-                      AppTheme.accentGradient,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MemberSelector(),
-                        ),
-                      ),
-                    ),
-                    _buildMenuCard(
-                      context,
-                      loc.translate('history'),
-                      Icons.history_rounded,
-                      const LinearGradient(
-                        colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
-                      ),
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HistoryScreen(),
-                        ),
-                      ),
-                    ),
-                    _buildMenuCard(
-                      context,
-                      loc.translate('settings'),
-                      Icons.settings_rounded,
-                      const LinearGradient(
-                        colors: [Color(0xFF64748B), Color(0xFF475569)],
-                      ),
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(),
-                        ),
+                            ),
+                          ),
+                          _buildMenuCard(
+                            context,
+                            loc.translate('select_member'),
+                            Icons.people_alt_rounded,
+                            AppTheme.accentGradient,
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MemberSelector(),
+                              ),
+                            ),
+                          ),
+                          _buildMenuCard(
+                            context,
+                            loc.translate('history'),
+                            Icons.history_rounded,
+                            const LinearGradient(
+                              colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                            ),
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const HistoryScreen(),
+                              ),
+                            ),
+                          ),
+                          _buildMenuCard(
+                            context,
+                            loc.translate('settings'),
+                            Icons.settings_rounded,
+                            const LinearGradient(
+                              colors: [Color(0xFF64748B), Color(0xFF475569)],
+                            ),
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
@@ -258,7 +267,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          gradient: gradient.withOpacity(0.1),
+          gradient: gradient,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -270,7 +279,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: gradient.colors.first.withOpacity(0.3),
+                    color: gradient.colors.first,
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -290,4 +299,3 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     );
   }
 }
-
