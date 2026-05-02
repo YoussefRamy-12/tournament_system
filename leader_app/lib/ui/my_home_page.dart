@@ -3,7 +3,6 @@ import 'package:leader_app/providers/auth_provider.dart';
 import 'package:leader_app/providers/connectivity_provider.dart';
 import 'package:leader_app/providers/settings_provider.dart';
 import 'package:leader_app/providers/tournament_provider.dart';
-import 'package:leader_app/ui/connection_failed_screen.dart';
 import 'package:leader_app/ui/history_screen.dart';
 import 'package:leader_app/ui/member_selector.dart';
 import 'package:leader_app/ui/scanner_screen.dart';
@@ -11,7 +10,6 @@ import 'package:leader_app/ui/settings_screen.dart';
 import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
-import 'package:leader_app/ui/widgets/skeleton_loader.dart';
 import 'package:provider/provider.dart';
 
 class MyHomePage extends StatefulWidget {
