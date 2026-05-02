@@ -5,6 +5,7 @@ import 'package:leader_app/ui/theme/app_theme.dart';
 
 class FeedbackScreen extends StatelessWidget {
   final bool success;
+  final bool isOffline;
   final String title;
   final String message;
   final String primaryButtonLabel;
@@ -16,6 +17,7 @@ class FeedbackScreen extends StatelessWidget {
   const FeedbackScreen({
     super.key,
     required this.success,
+    this.isOffline = false,
     required this.title,
     required this.message,
     required this.primaryButtonLabel,
@@ -51,17 +53,17 @@ class FeedbackScreen extends StatelessWidget {
                 Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: (success ? Colors.green : Colors.red).withValues(
+                        color: (isOffline ? Colors.orange : (success ? Colors.green : Colors.red)).withValues(
                           alpha: 0.1,
                         ),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        success
-                            ? Icons.check_circle_rounded
-                            : Icons.error_rounded,
+                        isOffline 
+                            ? Icons.cloud_upload_rounded 
+                            : (success ? Icons.check_circle_rounded : Icons.error_rounded),
                         size: 100,
-                        color: success ? Colors.green : Colors.red,
+                        color: isOffline ? Colors.orange : (success ? Colors.green : Colors.red),
                       ),
                     )
                     .animate()
@@ -104,7 +106,7 @@ class FeedbackScreen extends StatelessWidget {
                       label: primaryButtonLabel,
                       onPressed: onPrimaryAction,
                       icon: primaryButtonIcon,
-                      gradient: success
+                      gradient: isOffline || success
                           ? null
                           : const LinearGradient(
                               colors: [Colors.red, Colors.redAccent],

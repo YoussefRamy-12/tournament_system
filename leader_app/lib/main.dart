@@ -58,9 +58,30 @@ void main() async {
             return connectivity;
           },
         ),
-        ChangeNotifierProvider(
+        ChangeNotifierProxyProvider2<
+          ConnectivityProvider,
+          SettingsProvider,
+          TournamentProvider
+        >(
           create: (_) =>
               TournamentProvider(api: apiService, storage: storageService),
+          update: (_, connectivity, settings, tournament) {
+            tournament?.isServerOnline = connectivity.isOnline;
+            connectivity.onReconnect = () async {
+              if (tournament == null) return;
+              // Force online state synchronously before fetch to avoid frame race conditions
+              tournament.isServerOnline = true; 
+              await tournament.syncPendingTransactions();
+              print("after pending transactions");
+              await tournament.fetchTeams();
+              print("after fetch teams");
+              await tournament.prefetchOfflineData();
+              print("after prefetch offline data");
+              await tournament.fetchHistory();
+              print("after fetch history");
+            };
+            return tournament!;
+          },
         ),
       ],
       child: const TournamentApp(),
@@ -95,7 +116,8 @@ class TournamentApp extends StatelessWidget {
         }
 
         // Global Connection Failure Screen
-        if (connectivity.connectionFailed) {
+        if (connectivity.connectionFailed &&
+            auth.status != AuthStatus.approved) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Tournament Leader',

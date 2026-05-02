@@ -15,6 +15,7 @@ class ConnectivityProvider with ChangeNotifier {
   Timer? _connectionTimeoutTimer;
   void Function(String)? onStatusUpdate;
   void Function(String)? onProfileUpdate;
+  VoidCallback? onReconnect;
 
   bool get isOnline => _isOnline;
   bool get isConnecting => _isConnecting;
@@ -56,7 +57,6 @@ class ConnectivityProvider with ChangeNotifier {
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-
       _channel?.stream.listen(
         (message) {
           try {
@@ -101,6 +101,9 @@ class ConnectivityProvider with ChangeNotifier {
     if (_isOnline != online) {
       _isOnline = online;
       notifyListeners();
+      if (online && onReconnect != null) {
+        onReconnect!();
+      }
     }
   }
 

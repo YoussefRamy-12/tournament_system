@@ -130,6 +130,8 @@ class AppLocalizations {
       'tag_goal': 'Goal/Objective',
       'tag_arrival': 'Arrival Bonus',
       'tag_violation': 'Rule Violation (-)',
+      'offline_data_ready': 'Offline Data Ready',
+      'syncing_data': 'Syncing Data...',
     },
     'ar': {
       'settings': 'الإعدادات',
@@ -250,6 +252,8 @@ class AppLocalizations {
       'tag_goal': 'هدف / مهمة',
       'tag_arrival': 'مكافأة وصول',
       'tag_violation': 'مخالفة قوانين (-)',
+      'offline_data_ready': 'البيانات جاهزة للعمل بدون اتصال',
+      'syncing_data': 'جاري مزامنة البيانات...',
     },
   };
 

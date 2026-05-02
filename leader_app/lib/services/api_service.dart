@@ -18,7 +18,7 @@ class ApiService {
   }
 
   Future<List<Team>> fetchTeams(String baseUrl) async {
-    final response = await http.get(Uri.parse('$baseUrl/teams'));
+    final response = await http.get(Uri.parse('$baseUrl/teams')).timeout(const Duration(seconds: 3));
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(response.body);
       return body.map((json) => Team.fromJson(json)).toList();
@@ -28,7 +28,7 @@ class ApiService {
   }
 
   Future<List<Member>> fetchMembers(String baseUrl, int teamId) async {
-    final response = await http.get(Uri.parse('$baseUrl/members/$teamId'));
+    final response = await http.get(Uri.parse('$baseUrl/members/$teamId')).timeout(const Duration(seconds: 3));
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(response.body);
       List<Member> members = body.map((json) => Member.fromJson(json)).toList();
@@ -84,7 +84,7 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> fetchHistory(String baseUrl, String leaderId) async {
-    final response = await http.get(Uri.parse('$baseUrl/history/$leaderId'));
+    final response = await http.get(Uri.parse('$baseUrl/history/$leaderId')).timeout(const Duration(seconds: 3));
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(response.body);
       return List<Map<String, dynamic>>.from(body);

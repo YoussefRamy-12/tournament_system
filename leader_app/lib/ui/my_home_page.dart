@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:leader_app/providers/auth_provider.dart';
 import 'package:leader_app/providers/connectivity_provider.dart';
 import 'package:leader_app/providers/settings_provider.dart';
+import 'package:leader_app/providers/tournament_provider.dart';
 import 'package:leader_app/ui/connection_failed_screen.dart';
 import 'package:leader_app/ui/history_screen.dart';
 import 'package:leader_app/ui/member_selector.dart';
@@ -126,130 +127,150 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
               ),
             ),
           ),
+          // Offline Data Ready Indicator
+          Consumer<TournamentProvider>(
+            builder: (context, tournament, child) {
+              if (tournament.isOfflineDataReady) {
+                return Tooltip(
+                  message: loc.translate('offline_data_ready'),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Icon(Icons.cloud_done_rounded, color: Colors.blueAccent, size: 22),
+                  ),
+                );
+              } else if (connectivity.isOnline && !tournament.isOfflineDataReady) {
+                 return Tooltip(
+                   message: loc.translate('syncing_data'),
+                   child: const Padding(
+                     padding: EdgeInsets.symmetric(horizontal: 12.0),
+                     child: SizedBox(
+                       width: 16, height: 16, 
+                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent)
+                     ),
+                   ),
+                 );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.sync_problem),
             onPressed: _isManualChecking ? null : _manualReconnect,
           ),
         ],
       ),
-      body: connectivity.isOnline == false && connectivity.isConnecting == false
-          ? const SkeletonLoader()
-          : connectivity.connectionFailed
-          ? const ConnectionFailedScreen()
-          : Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [AppTheme.darkBg, AppTheme.darkSurface]
-                      : [AppTheme.lightBg, Colors.white],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: SafeArea(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
+                : [AppTheme.lightBg, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            loc.translate('app_title'),
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
+                    Text(
+                      loc.translate('app_title'),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
                           ),
-                          const SizedBox(height: 8),
-                          Consumer<SettingsProvider>(
-                            builder: (context, settings, _) {
-                              return Text(
-                                loc.translateWithParam(
-                                  'welcome_back',
-                                  'name',
-                                  settings.leaderName,
-                                ),
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                    ),
-                              );
-                            },
+                    ),
+                    const SizedBox(height: 8),
+                    Consumer<SettingsProvider>(
+                      builder: (context, settings, _) {
+                        return Text(
+                          loc.translateWithParam(
+                            'welcome_back',
+                            'name',
+                            settings.leaderName,
                           ),
-                        ],
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: isDark ? Colors.white70 : Colors.black54,
+                              ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  padding: const EdgeInsets.all(24),
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  children: [
+                    _buildMenuCard(
+                      context,
+                      loc.translate('scan_qr'),
+                      Icons.qr_code_scanner_rounded,
+                      AppTheme.primaryGradient,
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ScannerScreen(),
+                        ),
                       ),
                     ),
-                    Expanded(
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        padding: const EdgeInsets.all(24),
-                        mainAxisSpacing: 20,
-                        crossAxisSpacing: 20,
-                        children: [
-                          _buildMenuCard(
-                            context,
-                            loc.translate('scan_qr'),
-                            Icons.qr_code_scanner_rounded,
-                            AppTheme.primaryGradient,
-                            () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ScannerScreen(),
-                              ),
-                            ),
-                          ),
-                          _buildMenuCard(
-                            context,
-                            loc.translate('add_score'),
-                            Icons.add_circle_outline_rounded,
-                            AppTheme.accentGradient,
-                            () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MemberSelector(),
-                              ),
-                            ),
-                          ),
-                          _buildMenuCard(
-                            context,
-                            loc.translate('history'),
-                            Icons.history_rounded,
-                            const LinearGradient(
-                              colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
-                            ),
-                            () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HistoryScreen(),
-                              ),
-                            ),
-                          ),
-                          _buildMenuCard(
-                            context,
-                            loc.translate('settings'),
-                            Icons.settings_rounded,
-                            const LinearGradient(
-                              colors: [Color(0xFF64748B), Color(0xFF475569)],
-                            ),
-                            () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SettingsScreen(),
-                              ),
-                            ),
-                          ),
-                        ],
+                    _buildMenuCard(
+                      context,
+                      loc.translate('add_score'),
+                      Icons.add_circle_outline_rounded,
+                      AppTheme.accentGradient,
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MemberSelector(),
+                        ),
+                      ),
+                    ),
+                    _buildMenuCard(
+                      context,
+                      loc.translate('history'),
+                      Icons.history_rounded,
+                      const LinearGradient(
+                        colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                      ),
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HistoryScreen(),
+                        ),
+                      ),
+                    ),
+                    _buildMenuCard(
+                      context,
+                      loc.translate('settings'),
+                      Icons.settings_rounded,
+                      const LinearGradient(
+                        colors: [Color(0xFF64748B), Color(0xFF475569)],
+                      ),
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

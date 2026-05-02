@@ -366,7 +366,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     }
 
     final leaderId = await storage.getOrGenerateLeaderId();
-    bool success = false;
+    String status = 'ERROR';
 
     if (_mode == ScoringMode.individual) {
       final transaction = ScoreTransaction(
@@ -380,9 +380,9 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
         timestamp: DateTime.now(),
         description: _descriptionController.text.trim(),
       );
-      success = await tournament.submitScore(transaction);
+      status = await tournament.submitScore(transaction);
     } else {
-      success = await tournament.submitBulkScore(
+      status = await tournament.submitBulkScore(
         teamId: widget.team.id,
         points: _points,
         tag: _selectedTag!,
@@ -393,15 +393,27 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     if (mounted) {
       setState(() => _isSubmitting = false);
       
+      bool isSuccess = status == 'SUCCESS';
+      bool isOffline = status == 'OFFLINE_SAVED';
+      
+      String title = isSuccess ? loc.translate('success') : (isOffline ? loc.translate('offline_success') : loc.translate('error'));
+      String message;
+      if (isSuccess) {
+        message = _mode == ScoringMode.individual ? loc.translate('score_submitted_success') : loc.translate('score_submitted_bulk');
+      } else if (isOffline) {
+        message = loc.translate('score_saved_offline');
+      } else {
+        message = loc.translate('score_submit_failed');
+      }
+      
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => FeedbackScreen(
-            success: success,
-            title: success ? loc.translate('success') : loc.translate('error'),
-            message: success 
-                ? (_mode == ScoringMode.individual ? loc.translate('score_submitted_success') : loc.translate('score_submitted_bulk'))
-                : loc.translate('score_submit_failed'),
+            success: isSuccess || isOffline,
+            isOffline: isOffline,
+            title: title,
+            message: message,
             primaryButtonLabel: loc.translate('score_another'),
             primaryButtonIcon: Icons.person_add_rounded,
             onPrimaryAction: () {

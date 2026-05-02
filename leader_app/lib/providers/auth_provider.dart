@@ -141,7 +141,12 @@ class AuthProvider with ChangeNotifier {
       _status = AuthStatus.scanning;
       _pollingTimer?.cancel();
     } else if (result == 'CONNECTION_ERROR') {
-      _status = AuthStatus.error;
+      final isReg = await _storage.isRegistered();
+      if (isReg) {
+        _status = AuthStatus.approved; // Allow offline access
+      } else {
+        _status = AuthStatus.error;
+      }
     } else {
       _status = AuthStatus.waitingApproval;
     }

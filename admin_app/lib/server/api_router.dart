@@ -106,9 +106,12 @@ class ApiRouter {
 
       final List<Map<String, dynamic>> history = await db.rawQuery(
         '''
-    SELECT transactions.*, members.name as memberName 
+    SELECT transactions.*, 
+           members.name as memberName, 
+           teams.name as targetName 
     FROM transactions 
-    JOIN members ON transactions.target_id = members.id
+    LEFT JOIN members ON transactions.target_id = members.id AND (transactions.target_type = 'MEMBER' OR transactions.target_type IS NULL)
+    LEFT JOIN teams ON transactions.target_id = teams.id AND transactions.target_type = 'TEAM'
     WHERE transactions.leader_id = ?
     ORDER BY timestamp DESC
   ''',
