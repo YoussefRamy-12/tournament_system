@@ -89,6 +89,39 @@ class TournamentProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> submitBulkScore({
+    required int teamId,
+    required int points,
+    required String tag,
+    required String description,
+  }) async {
+    _setLoading(true);
+    try {
+      final url = await _storage.getUrl();
+      final leaderId = await _storage.getOrGenerateLeaderId();
+      if (url == null) throw Exception("Server URL not found");
+      
+      final success = await _api.submitBulkScore(
+        url,
+        teamId: teamId,
+        points: points,
+        tag: tag,
+        description: description,
+        leaderId: leaderId,
+      );
+      
+      if (success) {
+        await fetchHistory(); // Refresh history after submission
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();

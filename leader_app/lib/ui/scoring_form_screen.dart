@@ -11,9 +11,17 @@ import '../providers/auth_provider.dart';
 import '../providers/tournament_provider.dart';
 import '../services/storage_service.dart';
 
+enum ScoringMode { individual, team }
+
 class ScoringFormScreen extends StatefulWidget {
-  final Member member;
-  const ScoringFormScreen({super.key, required this.member});
+  final Team team;
+  final Member? initialMember;
+
+  const ScoringFormScreen({
+    super.key,
+    required this.team,
+    this.initialMember,
+  });
 
   @override
   State<ScoringFormScreen> createState() => _ScoringFormScreenState();
@@ -23,19 +31,41 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   int _points = 0;
   String? _selectedTag;
+  Member? _selectedMember;
+  ScoringMode _mode = ScoringMode.team;
 
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMember = widget.initialMember;
+    if (_selectedMember != null) {
+      _mode = ScoringMode.individual;
+    }
+    
+    // Ensure members are loaded for the dropdown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TournamentProvider>().fetchMembers(widget.team.id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tournament = context.watch<TournamentProvider>();
+    final members = tournament.getMembersForTeam(widget.team.id);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          loc.translateWithParam('score_member', 'name', widget.member.name),
+          _mode == ScoringMode.team
+              ? loc.translateWithParam('score_team', 'name', widget.team.name)
+              : (_selectedMember != null
+                  ? loc.translateWithParam('score_member', 'name', _selectedMember!.name)
+                  : loc.translate('select_member')),
         ),
         backgroundColor: Colors.transparent,
       ),
@@ -54,6 +84,15 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
+                // Mode Toggle Slider
+                _buildModeToggle(loc, isDark),
+                const SizedBox(height: 24),
+
+                if (_mode == ScoringMode.individual) ...[
+                  _buildMemberDropdown(loc, isDark, members),
+                  const SizedBox(height: 24),
+                ],
+
                 // Points Display Card
                 PremiumCard(
                   child: Column(
@@ -116,9 +155,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
                     TextButton.icon(
                       onPressed: () => setState(() => _points = 0),
                       icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: Text(
-                        loc.translate('reset_points'),
-                      ), // Ensure this key exists or use a default
+                      label: Text(loc.translate('reset_points')),
                       style: TextButton.styleFrom(foregroundColor: Colors.grey),
                     ),
                   ],
@@ -150,7 +187,16 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
                         hint: Text(loc.translate('select_tag')),
                         value: _selectedTag,
                         items: TournamentConstants.scoreTags.map((tag) {
-                          return DropdownMenuItem(value: tag, child: Text(tag));
+                          // Map raw tag names to localized names
+                          String localizedTag = tag;
+                          if (tag == 'Technical Skill') localizedTag = loc.translate('tag_technical');
+                          if (tag == 'Sportsmanship') localizedTag = loc.translate('tag_sportsmanship');
+                          if (tag == 'Teamwork') localizedTag = loc.translate('tag_teamwork');
+                          if (tag == 'Goal/Objective') localizedTag = loc.translate('tag_goal');
+                          if (tag == 'Arrival Bonus') localizedTag = loc.translate('tag_arrival');
+                          if (tag == 'Rule Violation (-)') localizedTag = loc.translate('tag_violation');
+                          
+                          return DropdownMenuItem(value: tag, child: Text(localizedTag));
                         }).toList(),
                         onChanged: (value) =>
                             setState(() => _selectedTag = value),
@@ -162,6 +208,21 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
                         prefixIcon: Icons.description_outlined,
                         hintText: loc.translate('add_details_hint'),
                       ),
+                      if (_mode == ScoringMode.team) ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.info_outline_rounded, size: 16, color: Colors.blueAccent),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                loc.translate('balancing_note'),
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -170,10 +231,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
 
                 PremiumButton(
                   label: loc.translate('submit_score'),
-                  onPressed:
-                      (_points != 0 && _selectedTag != null && !_isSubmitting)
-                      ? _submitScore
-                      : null,
+                  onPressed: _canSubmit() ? _submitScore : null,
                   isLoading: _isSubmitting,
                   icon: Icons.check_circle_outline,
                 ),
@@ -183,6 +241,78 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildModeToggle(AppLocalizations loc, bool isDark) {
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Row(
+        children: [
+          _modeButton(ScoringMode.team, loc.translate('team_mode')),
+          _modeButton(ScoringMode.individual, loc.translate('individual_mode')),
+        ],
+      ),
+    );
+  }
+
+  Widget _modeButton(ScoringMode mode, String label) {
+    final isSelected = _mode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _mode = mode),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(21),
+            boxShadow: isSelected
+                ? [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMemberDropdown(AppLocalizations loc, bool isDark, List<Member> members) {
+    return PremiumCard(
+      child: DropdownButtonFormField<Member>(
+        decoration: InputDecoration(
+          labelText: loc.translate('select_member'),
+          prefixIcon: const Icon(Icons.person_outline, color: AppTheme.primary),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: isDark ? AppTheme.darkBg.withOpacity(0.5) : Colors.grey.withOpacity(0.05),
+        ),
+        value: _selectedMember,
+        items: members.map((member) {
+          return DropdownMenuItem(value: member, child: Text(member.name));
+        }).toList(),
+        onChanged: (value) => setState(() => _selectedMember = value),
+      ),
+    );
+  }
+
+  bool _canSubmit() {
+    if (_points == 0 || _selectedTag == null || _isSubmitting) return false;
+    if (_mode == ScoringMode.individual && _selectedMember == null) return false;
+    return true;
   }
 
   Widget _pointButton(int value, Color color) {
@@ -198,10 +328,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            setState(() => _points += value);
-            // Add haptic-like effect or animation here if needed
-          },
+          onTap: () => setState(() => _points += value),
           borderRadius: BorderRadius.circular(12),
           child: Center(
             child: Text(
@@ -226,37 +353,42 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
 
     setState(() => _isSubmitting = true);
 
-    // 1. Ask the server: "Am I still allowed to do this?"
     await auth.checkApproval();
-
     if (auth.status != AuthStatus.approved) {
       if (mounted) {
         String message = loc.translate('access_revoked_message');
         if (auth.status == AuthStatus.scanning) {
           message = loc.translate('registration_not_found_message');
         }
-
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-        // Navigation is handled by main.dart listener
       }
       return;
     }
 
-    // 2. Only if APPROVED, proceed with the actual submission
     final leaderId = await storage.getOrGenerateLeaderId();
+    bool success = false;
 
-    final transaction = ScoreTransaction(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      memberId: widget.member.id,
-      leaderId: leaderId,
-      points: _points,
-      tag: _selectedTag!,
-      status: 'PENDING',
-      timestamp: DateTime.now(),
-      description: _descriptionController.text.trim(),
-    );
-
-    final success = await tournament.submitScore(transaction);
+    if (_mode == ScoringMode.individual) {
+      final transaction = ScoreTransaction(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        targetId: _selectedMember!.id,
+        targetType: 'MEMBER',
+        leaderId: leaderId,
+        points: _points,
+        tag: _selectedTag!,
+        status: 'PENDING',
+        timestamp: DateTime.now(),
+        description: _descriptionController.text.trim(),
+      );
+      success = await tournament.submitScore(transaction);
+    } else {
+      success = await tournament.submitBulkScore(
+        teamId: widget.team.id,
+        points: _points,
+        tag: _selectedTag!,
+        description: _descriptionController.text.trim(),
+      );
+    }
 
     if (mounted) {
       setState(() => _isSubmitting = false);
@@ -268,7 +400,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
             success: success,
             title: success ? loc.translate('success') : loc.translate('error'),
             message: success 
-                ? loc.translate('score_submitted_success') 
+                ? (_mode == ScoringMode.individual ? loc.translate('score_submitted_success') : loc.translate('score_submitted_bulk'))
                 : loc.translate('score_submit_failed'),
             primaryButtonLabel: loc.translate('score_another'),
             primaryButtonIcon: Icons.person_add_rounded,
@@ -286,4 +418,3 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
     }
   }
 }
-

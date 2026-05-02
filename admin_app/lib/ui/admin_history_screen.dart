@@ -131,7 +131,7 @@ class _AdminHistoryScreenState extends State<AdminHistoryScreen>
             ),
           ),
           title: Text(
-            item['memberName'] ?? loc.translate('unknown_member'),
+            item['targetName'] ?? loc.translate('unknown'),
             style: AppTheme.body16.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? AppTheme.darkTextColor : AppTheme.lightTextColor,

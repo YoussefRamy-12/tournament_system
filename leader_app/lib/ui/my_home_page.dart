@@ -205,8 +205,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                           ),
                           _buildMenuCard(
                             context,
-                            loc.translate('select_member'),
-                            Icons.people_alt_rounded,
+                            loc.translate('add_score'),
+                            Icons.add_circle_outline_rounded,
                             AppTheme.accentGradient,
                             () => Navigator.push(
                               context,

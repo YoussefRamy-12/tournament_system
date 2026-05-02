@@ -59,7 +59,8 @@ class Leader {
 class ScoreTransaction {
   final String id;
   final String leaderId;
-  final int memberId;
+  final int targetId;
+  final String targetType; // 'MEMBER' or 'TEAM'
   final int points;
   final String tag;
   final String status;
@@ -68,7 +69,8 @@ class ScoreTransaction {
 
   ScoreTransaction({
     required this.id,
-    required this.memberId,
+    required this.targetId,
+    required this.targetType,
     required this.leaderId,
     required this.points,
     required this.timestamp,
@@ -79,7 +81,8 @@ class ScoreTransaction {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'targetId': memberId,
+    'targetId': targetId,
+    'targetType': targetType,
     'points': points,
     'tag': tag,
     'status': status,
@@ -91,7 +94,8 @@ class ScoreTransaction {
   factory ScoreTransaction.fromJson(Map<String, dynamic> json) =>
       ScoreTransaction(
         id: json['id'],
-        memberId: json['target_id'] ?? json['targetId'],
+        targetId: json['target_id'] ?? json['targetId'],
+        targetType: json['target_type'] ?? json['targetType'] ?? 'MEMBER',
         leaderId: json['leader_id'] ?? json['leaderId'],
         points: json['points'],
         tag: json['tag'],

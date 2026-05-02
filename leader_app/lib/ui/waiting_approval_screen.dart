@@ -22,13 +22,13 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       final connectivity = context.read<ConnectivityProvider>();
-      
+
       connectivity.onStatusUpdate = (status) {
         if (mounted) {
           auth.checkApproval();
         }
       };
-      
+
       connectivity.connect();
     });
   }
@@ -41,7 +41,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final auth = context.watch<AuthProvider>();
+    context.watch<AuthProvider>();
 
     // main.dart handles general routing based on auth.status.
 
@@ -51,8 +51,8 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDark 
-                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+            colors: isDark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
                 : [AppTheme.lightBg, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -69,31 +69,42 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
                   alignment: Alignment.center,
                   children: [
                     Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.primary.withOpacity(0.1),
-                      ),
-                    ).animate(onPlay: (controller) => controller.repeat())
-                     .scale(begin: const Offset(1, 1), end: const Offset(1.5, 1.5), duration: 2.seconds, curve: Curves.easeOut)
-                     .fadeOut(duration: 2.seconds),
-                    
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.primary.withOpacity(0.1),
+                          ),
+                        )
+                        .animate(onPlay: (controller) => controller.repeat())
+                        .scale(
+                          begin: const Offset(1, 1),
+                          end: const Offset(1.5, 1.5),
+                          duration: 2.seconds,
+                          curve: Curves.easeOut,
+                        )
+                        .fadeOut(duration: 2.seconds),
+
                     Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: AppTheme.primaryGradient,
-                        boxShadow: AppTheme.softShadow,
-                      ),
-                      child: const Icon(Icons.hourglass_empty_rounded, size: 40, color: Colors.white),
-                    ).animate(onPlay: (controller) => controller.repeat())
-                     .rotate(duration: 3.seconds),
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: AppTheme.primaryGradient,
+                            boxShadow: AppTheme.softShadow,
+                          ),
+                          child: const Icon(
+                            Icons.hourglass_empty_rounded,
+                            size: 40,
+                            color: Colors.white,
+                          ),
+                        )
+                        .animate(onPlay: (controller) => controller.repeat())
+                        .rotate(duration: 3.seconds),
                   ],
                 ),
                 const SizedBox(height: 48),
-                
+
                 Text(
                   loc.translate('waiting_for_approval'),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -103,7 +114,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                
+
                 PremiumCard(
                   child: Column(
                     children: [
@@ -114,25 +125,31 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
                       ),
                       const SizedBox(height: 24),
                       const LinearProgressIndicator(
-                        backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
-                      ).animate(onPlay: (controller) => controller.repeat())
-                       .shimmer(duration: 1.5.seconds, color: AppTheme.secondary.withOpacity(0.5)),
+                            backgroundColor: Colors.transparent,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppTheme.primary,
+                            ),
+                          )
+                          .animate(onPlay: (controller) => controller.repeat())
+                          .shimmer(
+                            duration: 1.5.seconds,
+                            color: AppTheme.secondary.withOpacity(0.5),
+                          ),
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 PremiumButton(
                   label: loc.translate('check_status_now'),
                   onPressed: _checkStatus,
                   gradient: AppTheme.accentGradient,
                   icon: Icons.refresh_rounded,
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Connection Status Helper
                 Text(
                   "Stay connected to the same Wi-Fi as the Admin.",
@@ -150,5 +167,3 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
     );
   }
 }
-
-

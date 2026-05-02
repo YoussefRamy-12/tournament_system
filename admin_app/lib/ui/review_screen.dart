@@ -15,17 +15,25 @@ class ReviewScreen extends StatefulWidget {
 class _ReviewScreenState extends State<ReviewScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  void _handleAction(BuildContext context, String id, String status, AppLocalizations loc) async {
+  void _handleAction(
+    BuildContext context,
+    String id,
+    String status,
+    AppLocalizations loc,
+  ) async {
     await _dbHelper.updateTransactionStatus(id, status);
     if (!context.mounted) return;
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${loc.translate('transaction')} ${loc.translate(status.toLowerCase())}'),
+        content: Text(
+          '${loc.translate('transaction')} ${loc.translate(status.toLowerCase())}',
+        ),
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppTheme.getStatusColor(status),
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        ),
       ),
     );
   }
@@ -36,33 +44,41 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     if (!mounted) return;
     String statusText = loc.translate(status.toLowerCase());
-    
-    bool confirm = await showDialog(
+
+    bool confirm =
+        await showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
-            title: Text('$statusText ${loc.translate('all')}?'),
-            content: Text(
-                loc.translate('mass_action_confirm')
-                .replaceAll('{status}', statusText)
-                .replaceAll('{count}', count.toString())),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(loc.translate('cancel')),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: status == 'APPROVED'
-                      ? AppTheme.successColor
-                      : AppTheme.errorColor,
+          builder:
+              (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusXl),
                 ),
-                child: Text('${loc.translate('yes')}, $statusText ${loc.translate('all')}'),
+                title: Text('$statusText ${loc.translate('all')}?'),
+                content: Text(
+                  loc
+                      .translate('mass_action_confirm')
+                      .replaceAll('{status}', statusText)
+                      .replaceAll('{count}', count.toString()),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(loc.translate('cancel')),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          status == 'APPROVED'
+                              ? AppTheme.successColor
+                              : AppTheme.errorColor,
+                    ),
+                    child: Text(
+                      '${loc.translate('yes')}, $statusText ${loc.translate('all')}',
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
         ) ??
         false;
 
@@ -72,11 +88,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${loc.translate('all')} ${loc.translate('requests')} $statusText'),
+            content: Text(
+              '${loc.translate('all')} ${loc.translate('requests')} $statusText',
+            ),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppTheme.getStatusColor(status),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            ),
           ),
         );
       }
@@ -126,7 +145,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
               constraints: const BoxConstraints(maxWidth: 800),
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spaceMd, vertical: AppTheme.spaceMd),
+                  horizontal: AppTheme.spaceMd,
+                  vertical: AppTheme.spaceMd,
+                ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
@@ -143,7 +164,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 
-  Widget _buildReviewCard(Map<String, dynamic> item, bool isDark, AppLocalizations loc) {
+  Widget _buildReviewCard(
+    Map<String, dynamic> item,
+    bool isDark,
+    AppLocalizations loc,
+  ) {
     final points = item['points'] ?? 0;
     final isPositive = points >= 0;
     final color = isPositive ? AppTheme.successColor : AppTheme.errorColor;
@@ -178,18 +203,54 @@ class _ReviewScreenState extends State<ReviewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item['memberName'] ?? loc.translate('unknown_member'),
-                    style: AppTheme.title18.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppTheme.darkTextColor : AppTheme.lightTextColor,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        item['targetName'] ?? loc.translate('unknown'),
+                        style: AppTheme.title18.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isDark
+                                  ? AppTheme.darkTextColor
+                                  : AppTheme.lightTextColor,
+                        ),
+                      ),
+                      if (item['target_type'] == 'TEAM') ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: AppTheme.primaryColor.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            "TEAM",
+                            style: TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: AppTheme.spaceXs),
                   Text(
                     '${item['tag']} • ${item['leaderName'] ?? loc.translate("unknown")}',
                     style: AppTheme.caption14.copyWith(
-                      color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor,
+                      color:
+                          isDark
+                              ? AppTheme.darkMutedTextColor
+                              : AppTheme.lightMutedTextColor,
                     ),
                   ),
                   if (item['description'] != null &&
@@ -199,7 +260,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       child: Text(
                         item['description'],
                         style: AppTheme.label12.copyWith(
-                          color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor,
+                          color:
+                              isDark
+                                  ? AppTheme.darkMutedTextColor
+                                  : AppTheme.lightMutedTextColor,
                           fontStyle: FontStyle.italic,
                         ),
                         maxLines: 1,
@@ -209,44 +273,84 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor,
-                size: 20),
+            Icon(
+              Icons.chevron_right_rounded,
+              color:
+                  isDark
+                      ? AppTheme.darkMutedTextColor
+                      : AppTheme.lightMutedTextColor,
+              size: 20,
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _showDetailsDialog(BuildContext context, Map<String, dynamic> item, AppLocalizations loc) {
+  void _showDetailsDialog(
+    BuildContext context,
+    Map<String, dynamic> item,
+    AppLocalizations loc,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        
+
         return AlertDialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
+            borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          ),
           title: Text(loc.translate('review_transaction')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildDetailTile(
-                  Icons.person_outline, loc.translate('member'), item['memberName'] ?? loc.translate('unknown'), isDark),
-              _buildDetailTile(Icons.stars_rounded, loc.translate('points'), '${item['points']}', isDark),
-              _buildDetailTile(Icons.label_outline, loc.translate('category'), item['tag'] ?? 'N/A', isDark),
-              _buildDetailTile(Icons.badge_outlined, loc.translate('submitted_by'),
-                  item['leaderName'] ?? loc.translate('unknown_leader'), isDark),
-              _buildDetailTile(Icons.access_time, loc.translate('timestamp'),
-                  item['timestamp'].toString(), isDark),
+                item['target_type'] == 'TEAM'
+                    ? Icons.groups_2_rounded
+                    : Icons.person,
+                item['target_type'] == 'TEAM'
+                    ? 'Team'
+                    : loc.translate('member'),
+                item['targetName'] ?? loc.translate('unknown'),
+                isDark,
+              ),
+              _buildDetailTile(
+                Icons.stars_rounded,
+                loc.translate('points'),
+                '${item['points']}',
+                isDark,
+              ),
+              _buildDetailTile(
+                Icons.label_outline,
+                loc.translate('category'),
+                item['tag'] ?? 'N/A',
+                isDark,
+              ),
+              _buildDetailTile(
+                Icons.badge_outlined,
+                loc.translate('submitted_by'),
+                item['leaderName'] ?? loc.translate('unknown_leader'),
+                isDark,
+              ),
+              _buildDetailTile(
+                Icons.access_time,
+                loc.translate('timestamp'),
+                item['timestamp'].toString(),
+                isDark,
+              ),
               if (item['description'] != null &&
                   item['description'].toString().isNotEmpty) ...[
                 const Divider(height: 24),
                 Text(
                   '${loc.translate('note')}: ${item['description']}',
                   style: TextStyle(
-                      fontStyle: FontStyle.italic,
-                      color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor),
+                    fontStyle: FontStyle.italic,
+                    color:
+                        isDark
+                            ? AppTheme.darkMutedTextColor
+                            : AppTheme.lightMutedTextColor,
+                  ),
                 ),
               ],
             ],
@@ -286,7 +390,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 
-  Widget _buildDetailTile(IconData icon, String label, String value, bool isDark) {
+  Widget _buildDetailTile(
+    IconData icon,
+    String label,
+    String value,
+    bool isDark,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.spaceSm),
       child: Row(
@@ -297,13 +406,25 @@ class _ReviewScreenState extends State<ReviewScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: AppTheme.caption14.copyWith(
-                        color: isDark ? AppTheme.darkMutedTextColor : AppTheme.lightMutedTextColor)),
-                Text(value,
-                    style: AppTheme.body16.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppTheme.darkTextColor : AppTheme.lightTextColor)),
+                Text(
+                  label,
+                  style: AppTheme.caption14.copyWith(
+                    color:
+                        isDark
+                            ? AppTheme.darkMutedTextColor
+                            : AppTheme.lightMutedTextColor,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: AppTheme.body16.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color:
+                        isDark
+                            ? AppTheme.darkTextColor
+                            : AppTheme.lightTextColor,
+                  ),
+                ),
               ],
             ),
           ),

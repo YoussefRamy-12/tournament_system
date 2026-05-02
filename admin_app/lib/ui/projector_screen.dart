@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:admin_app/components/player_details_dialog.dart';
+import 'package:admin_app/components/team_details_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -193,47 +194,51 @@ class _ProjectorStatsScreenState extends State<ProjectorStatsScreen> {
         final isTop3 = index < 3;
         final score = team['totalScore'] ?? 0;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          decoration: BoxDecoration(
-            color:
-                isTop3
-                    ? Colors.indigo.withValues(alpha: 0.1)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
+        return InkWell(
+          onTap: () => TeamDetailsDialog.show(context, team),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
               color:
                   isTop3
-                      ? Colors.indigo.withValues(alpha: 0.2)
-                      : (isDark ? Colors.white : Colors.black).withValues(
-                        alpha: 0.05,
-                      ),
+                      ? Colors.indigo.withValues(alpha: 0.1)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color:
+                    isTop3
+                        ? Colors.indigo.withValues(alpha: 0.2)
+                        : (isDark ? Colors.white : Colors.black).withValues(
+                          alpha: 0.05,
+                        ),
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              _buildRankBadge(index + 1, isDark),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Text(
-                  team['name'] ?? loc.translate('unknown_team'),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 28,
-                    fontWeight: isTop3 ? FontWeight.bold : FontWeight.w500,
-                    color: isDark ? Colors.white : Colors.black87,
+            child: Row(
+              children: [
+                _buildRankBadge(index + 1, isDark),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Text(
+                    team['name'] ?? loc.translate('unknown_team'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 28,
+                      fontWeight: isTop3 ? FontWeight.bold : FontWeight.w500,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                "$score",
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: score < 0 ? Colors.redAccent : Colors.greenAccent,
+                Text(
+                  "$score",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: score < 0 ? Colors.redAccent : Colors.greenAccent,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: -0.05, end: 0);
       },

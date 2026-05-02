@@ -4,6 +4,7 @@ class TournamentConstants {
     'Sportsmanship',
     'Teamwork',
     'Goal/Objective',
+    'Arrival Bonus',
     'Rule Violation (-)',
   ];
 }

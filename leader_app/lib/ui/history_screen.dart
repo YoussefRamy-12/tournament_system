@@ -237,13 +237,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              item['memberName'] ??
-                                  loc.translate('unknown_member'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  item['targetName'] ??
+                                      item['memberName'] ??
+                                      loc.translate('unknown'),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                if (item['target_type'] == 'TEAM') ...[
+                                  const SizedBox(width: 6),
+                                  const Icon(
+                                    Icons.group_rounded,
+                                    size: 14,
+                                    color: AppTheme.primary,
+                                  ),
+                                ],
+                              ],
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -305,9 +318,9 @@ void _showTransactionDetails(BuildContext context, Map<String, dynamic> t) {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildDetailTile(
-            Icons.person_outline,
-            'Member',
-            t['memberName'] ?? 'Unknown',
+            t['target_type'] == 'TEAM' ? Icons.groups : Icons.person,
+            t['target_type'] == 'TEAM' ? 'Team' : 'Member',
+            t['targetName'] ?? t['memberName'] ?? 'Unknown',
           ),
           _buildDetailTile(
             Icons.stars_rounded,

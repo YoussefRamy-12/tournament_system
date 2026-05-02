@@ -54,6 +54,35 @@ class ApiService {
     }
   }
 
+  Future<bool> submitBulkScore(
+    String baseUrl, {
+    required int teamId,
+    required int points,
+    required String tag,
+    required String description,
+    required String leaderId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/submit-bulk-score'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'teamId': teamId,
+              'points': points,
+              'tag': tag,
+              'description': description,
+              'leaderId': leaderId,
+              'timestamp': DateTime.now().toIso8601String(),
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchHistory(String baseUrl, String leaderId) async {
     final response = await http.get(Uri.parse('$baseUrl/history/$leaderId'));
     if (response.statusCode == 200) {

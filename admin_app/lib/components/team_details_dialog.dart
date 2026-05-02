@@ -20,11 +20,11 @@ class TeamDetailsDialog {
 
     // Summary Data
     final int memberCount = summary['memberCount'] ?? 0;
-    final double teamAverage =
-        (summary['teamAverage'] as num?)?.toDouble() ?? 0.0;
+    final int teamPoints = summary['teamPoints'] ?? 0;
+    final int memberPoints = summary['memberPoints'] ?? 0;
+    final int totalScore = summary['totalPoints'] ?? 0;
     final String mvpName = summary['topPlayerName'] ?? 'N/A';
     final int mvpScore = summary['topPlayerScore'] ?? 0;
-    final int totalScore = team['totalScore'] ?? 0;
 
     showDialog(
       context: context,
@@ -84,21 +84,38 @@ class TeamDetailsDialog {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildStatCard(
-                            icon: Icons.analytics_rounded,
-                            label: loc.translate("average"),
-                            value: teamAverage.toStringAsFixed(1),
+                            icon: Icons.emoji_events_outlined,
+                            label: "Team Awards",
+                            value: "$teamPoints",
                             isDark: isDark,
+                            color: Colors.orange,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildStatCard(
-                      icon: Icons.star_rounded,
-                      label: loc.translate("team_mvp"),
-                      value: "$mvpName ($mvpScore ${loc.translate('pts')})",
-                      isDark: isDark,
-                      color: Colors.amber,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.person_add_alt_1_rounded,
+                            label: "Member Points",
+                            value: "$memberPoints",
+                            isDark: isDark,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.star_rounded,
+                            label: loc.translate("team_mvp"),
+                            value: "$mvpName ($mvpScore)",
+                            isDark: isDark,
+                            color: Colors.amber,
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 32),

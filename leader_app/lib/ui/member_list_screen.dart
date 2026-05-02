@@ -37,14 +37,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(loc.translateWithParam('score_member', 'name', widget.team.name)),
+        title: Text(
+          loc.translateWithParam('score_member', 'name', widget.team.name),
+        ),
         backgroundColor: Colors.transparent,
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDark 
-                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+            colors: isDark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
                 : [AppTheme.lightBg, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -53,7 +55,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
         child: SafeArea(
           child: RefreshIndicator(
             key: _refreshIndicatorKey,
-            onRefresh: () => context.read<TournamentProvider>().fetchMembers(widget.team.id),
+            onRefresh: () =>
+                context.read<TournamentProvider>().fetchMembers(widget.team.id),
             child: _buildContent(),
           ),
         ),
@@ -71,7 +74,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary)),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+            ),
             const SizedBox(height: 24),
             Text(loc.translate('loading_members')),
           ],
@@ -85,11 +90,18 @@ class _MemberListScreenState extends State<MemberListScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.redAccent,
+                  size: 64,
+                ),
                 const SizedBox(height: 24),
                 Text(
                   loc.translate('oops_something_wrong'),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -115,9 +127,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline_rounded, size: 80, color: AppTheme.primary.withOpacity(0.2)),
+            Icon(
+              Icons.people_outline_rounded,
+              size: 80,
+              color: AppTheme.primary.withOpacity(0.2),
+            ),
             const SizedBox(height: 24),
-            Text(loc.translate('no_members_found'), style: const TextStyle(color: Colors.grey, fontSize: 16)),
+            Text(
+              loc.translate('no_members_found'),
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
+            ),
           ],
         ),
       );
@@ -135,7 +154,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ScoringFormScreen(member: member)),
+                MaterialPageRoute(
+                  builder: (context) => ScoringFormScreen(
+                    team: widget.team,
+                    initialMember: member,
+                  ),
+                ),
               );
             },
             child: Row(
@@ -150,7 +174,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   child: Center(
                     child: Text(
                       '${index + 1}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -158,7 +185,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 Expanded(
                   child: Text(
                     member.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
                 const Icon(Icons.chevron_right_rounded, color: Colors.grey),
@@ -170,4 +200,3 @@ class _MemberListScreenState extends State<MemberListScreen> {
     );
   }
 }
-

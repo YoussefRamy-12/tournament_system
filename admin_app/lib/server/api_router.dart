@@ -62,6 +62,45 @@ class ApiRouter {
       return Response.ok(jsonEncode({'status': 'success'}));
     });
 
+    router.post('/submit-bulk-score', (Request request) async {
+      print('📥 ApiRouter: Received /submit-bulk-score request');
+      final payload = await request.readAsString();
+      final data = jsonDecode(payload);
+
+      await _dbHelper.submitBulkScore(
+        teamId: data['teamId'],
+        totalPoints: data['points'],
+        leaderId: data['leaderId'],
+        tag: data['tag'],
+        description: data['description'] ?? '',
+        timestamp: data['timestamp'],
+      );
+
+      return Response.ok(jsonEncode({'status': 'success'}));
+    });
+
+    router.post('/submit-score', (Request request) async {
+      print('📥 ApiRouter: Received /submit-score request');
+      final payload = await request.readAsString();
+      final data = jsonDecode(payload);
+
+      final db = await _dbHelper.database;
+      await db.insert('transactions', {
+        'id': data['id'],
+        'leader_id': data['leaderId'],
+        'target_id': data['targetId'],
+        'target_type': data['targetType'] ?? 'MEMBER',
+        'points': data['points'],
+        'tag': data['tag'],
+        'description': data['description'] ?? '',
+        'status': data['status'],
+        'timestamp': data['timestamp'],
+      });
+
+      DashboardNotifier.instance.notifyDashboardUpdate();
+      return Response.ok(jsonEncode({'status': 'success'}));
+    });
+
     router.get('/history/<leaderId>', (Request request, String leaderId) async {
       final db = await _dbHelper.database;
 

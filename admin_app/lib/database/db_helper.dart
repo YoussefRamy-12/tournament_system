@@ -32,7 +32,7 @@ class DatabaseHelper {
     print("📂 Database located at: $path");
 
     // 3. Open/Create the database
-    return await databaseFactory.openDatabase(
+    final db = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
         version: 1,
@@ -61,6 +61,7 @@ class DatabaseHelper {
               id TEXT PRIMARY KEY,
               leader_id TEXT,
               target_id INTEGER,
+              target_type TEXT DEFAULT 'MEMBER', -- 'MEMBER' or 'TEAM'
               points INTEGER,
               tag TEXT,
               status TEXT,
@@ -70,16 +71,26 @@ class DatabaseHelper {
         ''');
 
           await db.execute('''
-  CREATE TABLE leaders (
-    id TEXT PRIMARY KEY,
-    name TEXT,
-    status TEXT, -- 'PENDING' or 'APPROVED'
-    device_info TEXT
-  )
-''');
+          CREATE TABLE leaders (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            status TEXT, -- 'PENDING' or 'APPROVED'
+            device_info TEXT
+          )
+        ''');
         },
       ),
     );
+
+    // 4. Migration: Add target_type if it doesn't exist
+    try {
+      await db.execute("ALTER TABLE Transactions ADD COLUMN target_type TEXT DEFAULT 'MEMBER'");
+      print("🚀 Migration: Added target_type to Transactions");
+    } catch (e) {
+      // Column already exists, ignore
+    }
+
+    return db;
   }
 
   Future<List<Map<String, dynamic>>> getAllTransactions() async {
@@ -87,26 +98,34 @@ class DatabaseHelper {
     return await db.rawQuery('''
     SELECT 
       transactions.*, 
-      members.name as memberName, 
+      CASE 
+        WHEN transactions.target_type = 'TEAM' THEN teams.name 
+        ELSE members.name 
+      END as targetName,
       leaders.name as leaderName 
     FROM transactions 
-    JOIN members ON transactions.target_id = members.id
+    LEFT JOIN members ON transactions.target_id = members.id AND (transactions.target_type = 'MEMBER' OR transactions.target_type IS NULL)
+    LEFT JOIN teams ON transactions.target_id = teams.id AND transactions.target_type = 'TEAM'
     LEFT JOIN leaders ON transactions.leader_id = leaders.id 
     ORDER BY timestamp DESC
   ''');
   }
 
-  // Fetch pending transactions with Member Names
+  // Fetch pending transactions with Member/Team Names
   Future<List<Map<String, dynamic>>> getPendingTransactions() async {
     final db = await database;
     return await db.rawQuery('''
     SELECT 
       transactions.*, 
-      members.name as memberName, 
-      leaders.name as leaderName -- We add this line
+      CASE 
+        WHEN transactions.target_type = 'TEAM' THEN teams.name 
+        ELSE members.name 
+      END as targetName,
+      leaders.name as leaderName 
     FROM transactions 
-    JOIN members ON transactions.target_id = members.id
-    LEFT JOIN leaders ON transactions.leader_id = leaders.id -- Join with leaders
+    LEFT JOIN members ON transactions.target_id = members.id AND (transactions.target_type = 'MEMBER' OR transactions.target_type IS NULL)
+    LEFT JOIN teams ON transactions.target_id = teams.id AND transactions.target_type = 'TEAM'
+    LEFT JOIN leaders ON transactions.leader_id = leaders.id 
     WHERE transactions.status = 'PENDING'
     ORDER BY timestamp DESC
   ''');
@@ -130,12 +149,16 @@ class DatabaseHelper {
     SELECT 
       teams.name, 
       teams.id,
-      SUM(transactions.points) as totalScore
+      (
+        SELECT IFNULL(SUM(points), 0) FROM transactions 
+        WHERE (
+          (target_id = teams.id AND target_type = 'TEAM') 
+          OR 
+          (target_id IN (SELECT id FROM members WHERE team_id = teams.id) AND (target_type = 'MEMBER' OR target_type IS NULL))
+        )
+        AND status = 'APPROVED'
+      ) as totalScore
     FROM teams
-    LEFT JOIN members ON teams.id = members.team_id
-    LEFT JOIN transactions ON members.id = transactions.target_id
-    WHERE transactions.status = 'APPROVED' OR transactions.status IS NULL
-    GROUP BY teams.id
     ORDER BY totalScore DESC
   ''');
   }
@@ -227,11 +250,16 @@ class DatabaseHelper {
     return await db.rawQuery('''
     SELECT 
       T.name AS team_name, 
-      SUM(CASE WHEN TR.status = 'approved' THEN TR.points ELSE 0 END) AS total_points
+      (
+        SELECT IFNULL(SUM(points), 0) FROM transactions 
+        WHERE (
+          (target_id = T.id AND target_type = 'TEAM') 
+          OR 
+          (target_id IN (SELECT id FROM members WHERE team_id = T.id) AND (target_type = 'MEMBER' OR target_type IS NULL))
+        )
+        AND status = 'APPROVED'
+      ) AS total_points
     FROM Teams T
-    LEFT JOIN Members M ON T.id = M.team_id
-    LEFT JOIN Transactions TR ON M.id = TR.target_id
-    GROUP BY T.id, T.name
     ORDER BY total_points DESC
   ''');
   }
@@ -244,7 +272,7 @@ class DatabaseHelper {
       Members.id, 
       Members.name, 
       Teams.name AS teamName, 
-      SUM(Transactions.points) as totalScore
+      SUM(CASE WHEN (Transactions.target_type = 'MEMBER' OR Transactions.target_type IS NULL) THEN Transactions.points ELSE 0 END) as totalScore
     FROM Members
     JOIN Teams ON Members.team_id = Teams.id
     LEFT JOIN Transactions ON Members.id = Transactions.target_id
@@ -262,7 +290,7 @@ class DatabaseHelper {
       Members.id, 
       Members.name, 
       Teams.name AS teamName, 
-      IFNULL(SUM(Transactions.points), 0) as totalScore
+      IFNULL(SUM(CASE WHEN (Transactions.target_type = 'MEMBER' OR Transactions.target_type IS NULL) THEN Transactions.points ELSE 0 END), 0) as totalScore
     FROM Members
     JOIN Teams ON Members.team_id = Teams.id
     LEFT JOIN Transactions ON Members.id = Transactions.target_id AND Transactions.status = 'APPROVED'
@@ -291,26 +319,56 @@ class DatabaseHelper {
 
   Future<Map<String, dynamic>> getTeamSummary(int teamId) async {
     final db = await database;
-    final result = await db.rawQuery(
-      '''
-    SELECT 
-      COUNT(M.id) as memberCount,
-      IFNULL(AVG(member_scores.total), 0) as teamAverage,
-      (SELECT name FROM Members WHERE id = member_scores.id) as topPlayerName,
-      MAX(IFNULL(member_scores.total, 0)) as topPlayerScore
-    FROM Members M
-    LEFT JOIN (
-      SELECT target_id as id, SUM(points) as total 
-      FROM Transactions 
-      WHERE status = 'APPROVED' 
-      GROUP BY target_id
-    ) member_scores ON M.id = member_scores.id
-    WHERE M.team_id = ?
-  ''',
-      [teamId],
+    
+    // 1. Member Count
+    final membersCountResult = await db.rawQuery(
+      "SELECT COUNT(*) as total FROM Members WHERE team_id = ?",
+      [teamId]
     );
+    final int memberCount = (membersCountResult.first['total'] as int?) ?? 0;
 
-    return result.first;
+    // 2. Direct Team Points
+    final teamPointsResult = await db.rawQuery(
+      "SELECT SUM(points) as total FROM Transactions WHERE target_id = ? AND target_type = 'TEAM' AND status = 'APPROVED'",
+      [teamId]
+    );
+    final int teamPoints = (teamPointsResult.first['total'] as int?) ?? 0;
+
+    // 3. Individual Points Sum
+    final memberPointsResult = await db.rawQuery(
+      "SELECT SUM(points) as total FROM Transactions WHERE target_id IN (SELECT id FROM Members WHERE team_id = ?) AND (target_type = 'MEMBER' OR target_type IS NULL) AND status = 'APPROVED'",
+      [teamId]
+    );
+    final int memberPoints = (memberPointsResult.first['total'] as int?) ?? 0;
+
+    // 4. Top Player
+    final topPlayerResult = await db.rawQuery(
+      '''
+      SELECT M.name, SUM(T.points) as total 
+      FROM Members M 
+      JOIN Transactions T ON M.id = T.target_id 
+      WHERE M.team_id = ? AND (T.target_type = 'MEMBER' OR T.target_type IS NULL) AND T.status = 'APPROVED'
+      GROUP BY M.id 
+      ORDER BY total DESC LIMIT 1
+      ''',
+      [teamId]
+    );
+    
+    String topPlayerName = "N/A";
+    int topPlayerScore = 0;
+    if (topPlayerResult.isNotEmpty) {
+      topPlayerName = topPlayerResult.first['name'] as String;
+      topPlayerScore = (topPlayerResult.first['total'] as int?) ?? 0;
+    }
+
+    return {
+      'memberCount': memberCount,
+      'teamPoints': teamPoints,
+      'memberPoints': memberPoints,
+      'totalPoints': teamPoints + memberPoints,
+      'topPlayerName': topPlayerName,
+      'topPlayerScore': topPlayerScore,
+    };
   }
 
   Future<List<Map<String, dynamic>>> getAllTeams() async {
@@ -380,6 +438,31 @@ class DatabaseHelper {
         await txn.delete(table);
       }
     });
+    DashboardNotifier.instance.notifyDashboardUpdate();
+  }
+
+  Future<void> submitBulkScore({
+    required int teamId,
+    required int totalPoints,
+    required String leaderId,
+    required String tag,
+    required String description,
+    required String timestamp,
+  }) async {
+    final db = await database;
+    
+    await db.insert('transactions', {
+      'id': "${timestamp}_team_$teamId",
+      'leader_id': leaderId,
+      'target_id': teamId,
+      'target_type': 'TEAM',
+      'points': totalPoints,
+      'tag': tag,
+      'description': description,
+      'status': 'PENDING',
+      'timestamp': timestamp,
+    });
+
     DashboardNotifier.instance.notifyDashboardUpdate();
   }
 }

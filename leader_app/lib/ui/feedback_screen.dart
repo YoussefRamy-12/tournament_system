@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:leader_app/ui/app_localizations.dart';
 import 'package:leader_app/ui/widgets/premium_widgets.dart';
 import 'package:leader_app/ui/theme/app_theme.dart';
 
@@ -35,8 +34,8 @@ class FeedbackScreen extends StatelessWidget {
         width: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDark 
-                ? [AppTheme.darkBg, AppTheme.darkSurface] 
+            colors: isDark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
                 : [AppTheme.lightBg, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -50,65 +49,93 @@ class FeedbackScreen extends StatelessWidget {
               children: [
                 // Animated Status Icon
                 Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: (success ? Colors.green : Colors.red).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    success ? Icons.check_circle_rounded : Icons.error_rounded,
-                    size: 100,
-                    color: success ? Colors.green : Colors.red,
-                  ),
-                ).animate()
-                  .scale(duration: 600.ms, curve: Curves.elasticOut)
-                  .fadeIn(duration: 400.ms),
-                
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: (success ? Colors.green : Colors.red).withValues(
+                          alpha: 0.1,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        success
+                            ? Icons.check_circle_rounded
+                            : Icons.error_rounded,
+                        size: 100,
+                        color: success ? Colors.green : Colors.red,
+                      ),
+                    )
+                    .animate()
+                    .scale(duration: 600.ms, curve: Curves.elasticOut)
+                    .fadeIn(duration: 400.ms),
+
                 const SizedBox(height: 40),
-                
+
                 // Title Text
                 Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ).animate().slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 200.ms).fadeIn(),
-                
+                      title,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                    )
+                    .animate()
+                    .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 200.ms)
+                    .fadeIn(),
+
                 const SizedBox(height: 16),
-                
+
                 // Message Text
                 Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: isDark ? Colors.white70 : Colors.black54,
-                  ),
-                ).animate().slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms).fadeIn(),
-                
+                      message,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                    )
+                    .animate()
+                    .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms)
+                    .fadeIn(),
+
                 const SizedBox(height: 60),
-                
+
                 // Action Buttons
                 PremiumButton(
-                  label: primaryButtonLabel,
-                  onPressed: onPrimaryAction,
-                  icon: primaryButtonIcon,
-                  gradient: success ? null : const LinearGradient(colors: [Colors.red, Colors.redAccent]),
-                ).animate().slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 400.ms).fadeIn(),
-                
+                      label: primaryButtonLabel,
+                      onPressed: onPrimaryAction,
+                      icon: primaryButtonIcon,
+                      gradient: success
+                          ? null
+                          : const LinearGradient(
+                              colors: [Colors.red, Colors.redAccent],
+                            ),
+                    )
+                    .animate()
+                    .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 400.ms)
+                    .fadeIn(),
+
                 if (secondaryButtonLabel != null) ...[
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: onSecondaryAction ?? () => Navigator.pop(context),
-                    child: Text(
-                      secondaryButtonLabel!,
-                      style: TextStyle(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ).animate().slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 500.ms).fadeIn(),
+                        onPressed:
+                            onSecondaryAction ?? () => Navigator.pop(context),
+                        child: Text(
+                          secondaryButtonLabel!,
+                          style: TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      )
+                      .animate()
+                      .slideY(
+                        begin: 0.2,
+                        end: 0,
+                        duration: 400.ms,
+                        delay: 500.ms,
+                      )
+                      .fadeIn(),
                 ],
               ],
             ),
