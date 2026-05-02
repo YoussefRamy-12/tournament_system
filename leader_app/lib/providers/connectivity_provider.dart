@@ -57,6 +57,9 @@ class ConnectivityProvider with ChangeNotifier {
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _channel?.ready.catchError(
+        (_) {},
+      ); // Suppress unhandled exception from the package
       _channel?.stream.listen(
         (message) {
           try {

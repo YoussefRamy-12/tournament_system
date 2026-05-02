@@ -138,7 +138,7 @@ class TournamentProvider with ChangeNotifier {
              'timestamp': tx['timestamp'],
              'status': 'PENDING (OFFLINE)',
              'target_type': 'MEMBER',
-             'memberName': _getMemberName(tx['targetId']) ?? 'Offline Member',
+             'memberName': _getMemberName(tx['targetId'] ?? tx['target_id']) ?? 'Offline Member',
           });
         } else if (p['type'] == 'bulk') {
           final tx = p['data'];
@@ -150,7 +150,7 @@ class TournamentProvider with ChangeNotifier {
              'timestamp': tx['timestamp'] ?? DateTime.now().toIso8601String(),
              'status': 'PENDING (OFFLINE)',
              'target_type': 'TEAM',
-             'targetName': _getTeamName(tx['teamId']) ?? 'Offline Team',
+             'targetName': _getTeamName(tx['teamId'] ?? tx['team_id']) ?? 'Offline Team',
           });
         }
       }
@@ -158,7 +158,8 @@ class TournamentProvider with ChangeNotifier {
     }
   }
 
-  String? _getMemberName(int memberId) {
+  String? _getMemberName(int? memberId) {
+    if (memberId == null) return null;
     for (var members in _membersMap.values) {
       for (var m in members) {
         if (m.id == memberId) return m.name;
@@ -167,7 +168,8 @@ class TournamentProvider with ChangeNotifier {
     return null;
   }
 
-  String? _getTeamName(int teamId) {
+  String? _getTeamName(int? teamId) {
+    if (teamId == null) return null;
     for (var t in _teams) {
       if (t.id == teamId) return t.name;
     }

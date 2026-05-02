@@ -112,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 height: 12,
                 decoration: BoxDecoration(
                   color: connectivity.isOnline
-                      ? Colors.green
+                      ? Colors.green[700]
                       : (_isManualChecking ? Colors.yellow : Colors.red),
                   shape: BoxShape.circle,
                   boxShadow: [
@@ -133,24 +133,47 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
               if (tournament.isOfflineDataReady) {
                 return Tooltip(
                   message: loc.translate('offline_data_ready'),
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Icon(Icons.cloud_done_rounded, color: Colors.blueAccent, size: 22),
+                    child: Icon(
+                      Icons.cloud_done_rounded,
+                      color: Colors.green[700],
+                      size: 22,
+                    ),
                   ),
                 );
-              } else if (connectivity.isOnline && !tournament.isOfflineDataReady) {
-                 return Tooltip(
-                   message: loc.translate('syncing_data'),
-                   child: const Padding(
-                     padding: EdgeInsets.symmetric(horizontal: 12.0),
-                     child: SizedBox(
-                       width: 16, height: 16, 
-                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent)
-                     ),
-                   ),
-                 );
+              } else if (connectivity.isOnline &&
+                  !tournament.isOfflineDataReady) {
+                return Tooltip(
+                  message: loc.translate('syncing_data'),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12.0),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                  ),
+                );
               }
-              return const SizedBox.shrink();
+              return Tooltip(
+                message: loc.translate('no_internet_connection'),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: Icon(
+                      Icons.cloud_off_rounded,
+                      color: Colors.redAccent,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              );
             },
           ),
           IconButton(
