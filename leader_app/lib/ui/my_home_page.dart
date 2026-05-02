@@ -176,9 +176,26 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.sync_problem),
-            onPressed: _isManualChecking ? null : _manualReconnect,
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: _isManualChecking
+                ? const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    tooltip: loc.translate('retry'),
+                    splashRadius: 24,
+                    onPressed: _manualReconnect,
+                  ),
           ),
         ],
       ),
