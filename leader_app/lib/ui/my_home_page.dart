@@ -60,31 +60,81 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     final loc = AppLocalizations.of(context);
     final auth = context.read<AuthProvider>();
     final connectivity = context.read<ConnectivityProvider>();
+    final messenger = ScaffoldMessenger.of(context);
 
     setState(() => _isManualChecking = true);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(loc.translate('reconnecting'))));
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(loc.translate('reconnecting'))),
+          ],
+        ),
+        backgroundColor: AppTheme.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        // duration: const Duration(seconds: 3),
+      ),
+    );
 
-    // For manual reconnect, we can try to find the server again if URL is lost or IP changed
-    // but here we just trigger a refresh and check approval
     await auth.checkApproval();
     await connectivity.connect();
 
     if (mounted) {
       setState(() => _isManualChecking = false);
+      messenger.clearSnackBars();
       if (connectivity.isOnline) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
-            content: Text(loc.translate('connected')),
-            backgroundColor: Colors.green,
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(loc.translate('connected'))),
+              ],
+            ),
+            backgroundColor: Colors.green[700],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
-            content: Text(loc.translate('laptop_not_found')),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.wifi_off_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(loc.translate('laptop_not_found'))),
+              ],
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -210,47 +260,53 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc.translate('app_title'),
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Consumer<SettingsProvider>(
-                      builder: (context, settings, _) {
-                        return Text(
-                          loc.translateWithParam(
-                            'welcome_back',
-                            'name',
-                            settings.leaderName,
-                          ),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: isDark ? Colors.white70 : Colors.black54,
-                              ),
-                        );
-                      },
-                    ),
-                  ],
+          child: RefreshIndicator(
+            color: AppTheme.primary,
+            onRefresh: _manualReconnect,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.translate('app_title'),
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Consumer<SettingsProvider>(
+                        builder: (context, settings, _) {
+                          return Text(
+                            loc.translateWithParam(
+                              'welcome_back',
+                              'name',
+                              settings.leaderName,
+                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: GridView.count(
+                GridView.count(
                   crossAxisCount: 2,
                   padding: const EdgeInsets.all(24),
                   mainAxisSpacing: 20,
                   crossAxisSpacing: 20,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
                     _buildMenuCard(
                       context,
@@ -306,8 +362,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

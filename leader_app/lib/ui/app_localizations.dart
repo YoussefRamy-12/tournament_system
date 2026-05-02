@@ -132,6 +132,7 @@ class AppLocalizations {
       'tag_violation': 'Rule Violation (-)',
       'offline_data_ready': 'Offline Data Ready',
       'syncing_data': 'Syncing Data...',
+      'no_internet_connection': 'Offline — No server connection',
     },
     'ar': {
       'settings': 'الإعدادات',
