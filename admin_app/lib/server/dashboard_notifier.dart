@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../services/logger_service.dart';
 
 /// Singleton that notifies listeners when dashboard stats should be refreshed
 /// This is triggered by database changes like new transactions, leader approvals, etc.
@@ -14,7 +15,7 @@ class DashboardNotifier {
 
   /// Call this whenever a database operation occurs that affects dashboard stats
   void notifyDashboardUpdate() {
-    print('📣 DashboardNotifier: Broadcasting update event');
+    LoggerService.instance.debug('DASHBOARD', 'Broadcasting update event');
     _updateController.add(null);
   }
 

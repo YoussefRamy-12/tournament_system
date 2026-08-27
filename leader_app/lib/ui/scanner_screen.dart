@@ -58,7 +58,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
           IgnorePointer(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 backgroundBlendMode: BlendMode.dstOut,
               ),
             ),
@@ -87,13 +87,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primary.withOpacity(0.8),
+                                color: AppTheme.primary.withValues(alpha: 0.8),
                                 blurRadius: 10,
                                 spreadRadius: 2,
                               ),
                             ],
                             gradient: LinearGradient(
-                              colors: [AppTheme.primary.withOpacity(0), AppTheme.primary, AppTheme.primary.withOpacity(0)],
+                              colors: [AppTheme.primary.withValues(alpha: 0), AppTheme.primary, AppTheme.primary.withValues(alpha: 0)],
                             ),
                           ),
                         ),
@@ -139,7 +139,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   void _showManualIpDialog() {
-    final TextEditingController _ipController = TextEditingController();
+    final TextEditingController ipController = TextEditingController();
     final loc = AppLocalizations.of(context);
     
     showDialog(
@@ -151,7 +151,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             PremiumTextField(
-              controller: _ipController,
+              controller: ipController,
               label: loc.translate('server_ip'),
               prefixIcon: Icons.lan_outlined,
               hintText: "192.168.1.15",
@@ -167,7 +167,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             label: loc.translate('ok'),
             onPressed: () {
               Navigator.pop(context);
-              String ip = _ipController.text.trim();
+              String ip = ipController.text.trim();
               if (ip.isNotEmpty) {
                 if (!ip.startsWith('http')) ip = 'http://$ip';
                 if (!ip.contains(':8080')) ip = '$ip:8080';

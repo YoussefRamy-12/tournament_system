@@ -117,7 +117,6 @@ class AuthProvider with ChangeNotifier {
     final data = await _api.checkLeaderStatus(url, leaderId);
     final result = data?['status'] ?? 'ERROR';
     
-    AuthStatus oldStatus = _status;
     if (result == 'APPROVED') {
       _status = AuthStatus.approved;
       _pollingTimer?.cancel();

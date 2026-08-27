@@ -104,7 +104,7 @@ class _LeaderApprovalScreenState extends State<LeaderApprovalScreen>
       return EmptyState(
         icon: Icons.people_outline_rounded,
         message: loc.translate('no_leaders_here'),
-        subtitle: '${loc.translate('no_transactions_subtitle')}', // Reusing subtitle key
+        subtitle: loc.translate('no_transactions_subtitle'), // Reusing subtitle key
       );
     }
 

@@ -122,7 +122,7 @@ class _MemberSelectorState extends State<MemberSelector> {
             Icon(
               Icons.group_off_rounded,
               size: 80,
-              color: AppTheme.primary.withOpacity(0.2),
+              color: AppTheme.primary.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 24),
             Text(

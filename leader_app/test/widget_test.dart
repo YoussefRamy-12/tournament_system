@@ -1,30 +1,41 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-// import 'package:flutter/material.dart';
-// import 'package:flutter_test/flutter_test.dart';
-
-// import 'package:leader_app/main.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:leader_app/main.dart';
+import 'package:leader_app/services/storage_service.dart';
+import 'package:leader_app/services/api_service.dart';
+import 'package:leader_app/providers/settings_provider.dart';
+import 'package:leader_app/providers/auth_provider.dart';
+import 'package:leader_app/providers/tournament_provider.dart';
+import 'package:leader_app/providers/connectivity_provider.dart';
 
 void main() {
-  // testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-  //   // Build our app and trigger a frame.
-  //   await tester.pumpWidget(const MyApp());
+  testWidgets('TournamentApp renders basic smoke test', (WidgetTester tester) async {
+    final storageService = StorageService();
+    final apiService = ApiService();
 
-  //   // Verify that our counter starts at 0.
-  //   expect(find.text('0'), findsOneWidget);
-  //   expect(find.text('1'), findsNothing);
-
-  //   // Tap the '+' icon and trigger a frame.
-  //   await tester.tap(find.byIcon(Icons.add));
-  //   await tester.pump();
-
-  //   // Verify that our counter has incremented.
-  //   expect(find.text('0'), findsNothing);
-  //   expect(find.text('1'), findsOneWidget);
-  // });
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          Provider.value(value: storageService),
+          Provider.value(value: apiService),
+          ChangeNotifierProvider(
+            create: (_) => SettingsProvider(storage: storageService, api: apiService),
+          ),
+          ChangeNotifierProxyProvider<SettingsProvider, AuthProvider>(
+            create: (_) => AuthProvider(api: apiService, storage: storageService),
+            update: (_, settings, auth) => auth ?? AuthProvider(api: apiService, storage: storageService),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => ConnectivityProvider(storage: storageService),
+          ),
+          ChangeNotifierProxyProvider2<ConnectivityProvider, SettingsProvider, TournamentProvider>(
+            create: (_) => TournamentProvider(api: apiService, storage: storageService),
+            update: (_, conn, settings, tournament) => tournament ?? TournamentProvider(api: apiService, storage: storageService),
+          ),
+        ],
+        child: const TournamentApp(),
+      ),
+    );
+    expect(find.byType(TournamentApp), findsOneWidget);
+  });
 }

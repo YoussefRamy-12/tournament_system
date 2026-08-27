@@ -28,8 +28,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Ensure we attempt to connect if not already
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final connectivity = context.read<ConnectivityProvider>();
       connectivity.onStatusUpdate = (status) {
         if (mounted) {
@@ -37,6 +36,17 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         }
       };
       connectivity.connect();
+
+      // FIX: When a leader is approved for the first time, the WS is already
+      // online (connected from WaitingApprovalScreen), so onReconnect never
+      // fires again. Trigger the full data fetch explicitly here.
+      if (connectivity.isOnline && mounted) {
+        final tournament = context.read<TournamentProvider>();
+        await tournament.syncPendingTransactions();
+        await tournament.fetchTeams();
+        await tournament.prefetchOfflineData();
+        await tournament.fetchHistory();
+      }
     });
   }
 
@@ -156,8 +166,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Center(
               child: Container(
-                width: 12,
-                height: 12,
+                width: 20,
+                height: 20,
                 decoration: BoxDecoration(
                   color: connectivity.isOnline
                       ? Colors.green[700]
@@ -166,11 +176,18 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                   boxShadow: [
                     BoxShadow(
                       color: (connectivity.isOnline ? Colors.green : Colors.red)
-                          .withOpacity(0.4),
+                          .withValues(alpha: 0.4),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),
                   ],
+                ),
+                child: Icon(
+                  connectivity.isOnline
+                      ? Icons.check_circle_outline_rounded
+                      : Icons.wifi_off_rounded,
+                  color: Colors.white,
+                  size: 15,
                 ),
               ),
             ),
@@ -180,6 +197,9 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             builder: (context, tournament, child) {
               if (tournament.isOfflineDataReady) {
                 return Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
+                  waitDuration: Duration(seconds: 5),
+                  showDuration: Duration(seconds: 3),
                   message: loc.translate('offline_data_ready'),
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -190,8 +210,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                     ),
                   ),
                 );
-              } else if (connectivity.isOnline &&
-                  !tournament.isOfflineDataReady) {
+              } else if (tournament.isSyncing) {
                 return Tooltip(
                   message: loc.translate('syncing_data'),
                   child: const Padding(
@@ -208,6 +227,15 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 );
               }
               return Tooltip(
+                triggerMode: TooltipTriggerMode.tap,
+                waitDuration: Duration(seconds: 10),
+                showDuration: Duration(seconds: 5),
+                onTriggered: () async {
+                  await tournament.syncPendingTransactions();
+                  await tournament.fetchTeams();
+                  await tournament.prefetchOfflineData();
+                  await tournament.fetchHistory();
+                },
                 message: loc.translate('no_internet_connection'),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -360,6 +388,113 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                     ),
                   ],
                 ),
+                // Manual offline sync card
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Consumer2<TournamentProvider, ConnectivityProvider>(
+                    builder: (context, tournament, connectivity, _) {
+                      final isSyncing = tournament.isSyncing;
+                      final isReady = tournament.isOfflineDataReady;
+                      final isOnline = connectivity.isOnline;
+
+                      final gradient = isSyncing
+                          ? const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1)])
+                          : isReady
+                              ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)])
+                              : const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]);
+
+                      return PremiumCard(
+                        onTap: (!isOnline || isSyncing)
+                            ? null
+                            : () async {
+                                final t = context.read<TournamentProvider>();
+                                await t.fetchTeams();
+                                await t.prefetchOfflineData();
+                              },
+                        padding: EdgeInsets.zero,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: gradient.withOpacity(0.08),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  gradient: gradient,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: gradient.colors.first.withValues(alpha: 0.35),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: isSyncing
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : Icon(
+                                        isReady
+                                            ? Icons.cloud_done_rounded
+                                            : Icons.cloud_download_rounded,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      isSyncing
+                                          ? loc.translate('syncing_data')
+                                          : isReady
+                                              ? loc.translate('offline_data_ready')
+                                              : loc.translate('sync_offline_data'),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      isSyncing
+                                          ? loc.translate('downloading_members')
+                                          : isReady
+                                              ? loc.translate('tap_to_refresh_offline')
+                                              : isOnline
+                                                  ? loc.translate('tap_to_download_offline')
+                                                  : loc.translate('go_online_to_sync'),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? Colors.white54 : Colors.black45,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (!isSyncing)
+                                Icon(
+                                  isOnline ? Icons.chevron_right_rounded : Icons.wifi_off_rounded,
+                                  color: isDark ? Colors.white30 : Colors.black26,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -393,7 +528,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: gradient.colors.first.withOpacity(0.3),
+                    color: gradient.colors.first.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

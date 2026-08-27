@@ -6,12 +6,13 @@ class PlayerDetailsDialog {
   static void show(BuildContext context, Map<String, dynamic> player) async {
     final dbHelper = DatabaseHelper();
     final all = await dbHelper.getAllTransactions();
+
+    if (!context.mounted) return;
+
     final loc = AppLocalizations.of(context);
 
     // Assuming player map has 'id' available
     final history = all.where((t) => t['target_id'] == player['id']).toList();
-
-    if (!context.mounted) return;
 
     showDialog(
       context: context,

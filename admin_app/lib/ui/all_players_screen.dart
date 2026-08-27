@@ -1,7 +1,6 @@
 import 'package:admin_app/database/db_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../theme/app_theme.dart';
 import '../components/player_details_dialog.dart';
 import '../utils/app_localizations.dart';
 

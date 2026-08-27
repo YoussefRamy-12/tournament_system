@@ -25,7 +25,7 @@ class Member {
   Member({required this.id, required this.name, required this.teamId});
   Map<String, dynamic> toJson() => {'id': id, 'teamId': teamId, 'name': name};
   factory Member.fromJson(Map<String, dynamic> json) =>
-      Member(id: json['id'], teamId: json['team_id'], name: json['name']);
+      Member(id: json['id'], teamId: json['team_id'] ?? json['teamId'], name: json['name']);
 }
 
 class Leader {

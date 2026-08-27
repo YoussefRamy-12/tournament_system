@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:admin_app/server/dashboard_notifier.dart';
+import '../services/logger_service.dart';
 
 class OnlineLeaderTracker {
   static final OnlineLeaderTracker _instance = OnlineLeaderTracker._internal();
@@ -22,13 +23,16 @@ class OnlineLeaderTracker {
   Stream<void> get onStatusChange => _statusController.stream;
 
   void addConnection(String leaderId, WebSocketChannel channel) {
-    // 1. If this leader already has a connection, close the old one
+    // 1. If this leader already has a connection, close the old one with
+    //    code 4001 (intentional displacement). The leader client checks for
+    //    this code in onDone and skips its reconnect loop — preventing the
+    //    green→red→green flicker caused by the displaced channel firing onDone.
     if (_connections.containsKey(leaderId)) {
-      print('🔄 OnlineLeaderTracker: Closing existing connection for $leaderId');
+      LoggerService.instance.info('TRACKER', 'Displacing existing connection for $leaderId (code 4001)');
       final oldChannel = _connections.remove(leaderId);
       _lastSeen.remove(leaderId);
       try {
-        oldChannel?.sink.close();
+        oldChannel?.sink.close(4001, 'Displaced by newer connection');
       } catch (_) {}
     }
 
@@ -89,7 +93,7 @@ class OnlineLeaderTracker {
           .toList();
 
       for (var id in staleLeaderIds) {
-        print('🧹 Cleaning up stale authenticated leader: $id');
+        LoggerService.instance.warning('TRACKER', 'Cleaning up stale authenticated leader: $id');
         final channel = _connections.remove(id);
         _lastSeen.remove(id);
         try {
@@ -104,7 +108,7 @@ class OnlineLeaderTracker {
           .toList();
 
       if (staleUnauth.isNotEmpty) {
-        print('🧹 Cleaning up ${staleUnauth.length} stale unauthenticated connections');
+        LoggerService.instance.warning('TRACKER', 'Cleaning up ${staleUnauth.length} stale unauthenticated connections');
         for (var channel in staleUnauth) {
           _unauthenticatedChannels.remove(channel);
           try {
@@ -120,7 +124,7 @@ class OnlineLeaderTracker {
   }
 
   void _notify() {
-    print('🔄 OnlineLeaderTracker: Notifying (Total Online: $onlineCount)');
+    LoggerService.instance.debug('TRACKER', 'Notifying (Total Online: $onlineCount)');
     _statusController.add(null);
     DashboardNotifier.instance.notifyDashboardUpdate();
   }

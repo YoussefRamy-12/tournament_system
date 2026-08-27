@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:admin_app/server/online_leader_tracker.dart';
 import 'package:admin_app/server/dashboard_notifier.dart';
+import 'package:admin_app/services/logger_service.dart';
 
 class DatabaseHelper {
   static Database? _db;
@@ -29,7 +30,7 @@ class DatabaseHelper {
     }
     
     final path = join(dbPath, "tournament.db");
-    print("📂 Database located at: $path");
+    LoggerService.instance.info('DATABASE', 'Database initialized at $path');
 
     // 3. Open/Create the database
     final db = await databaseFactory.openDatabase(
@@ -78,16 +79,42 @@ class DatabaseHelper {
             device_info TEXT
           )
         ''');
+
+          // Create SystemLogs Table
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS SystemLogs (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              level TEXT NOT NULL,
+              category TEXT NOT NULL,
+              message TEXT NOT NULL,
+              details TEXT,
+              timestamp TEXT NOT NULL
+            )
+          ''');
         },
       ),
     );
 
-    // 4. Migration: Add target_type if it doesn't exist
+    // 4. Migrations
     try {
       await db.execute("ALTER TABLE Transactions ADD COLUMN target_type TEXT DEFAULT 'MEMBER'");
-      print("🚀 Migration: Added target_type to Transactions");
     } catch (e) {
       // Column already exists, ignore
+    }
+
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS SystemLogs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          level TEXT NOT NULL,
+          category TEXT NOT NULL,
+          message TEXT NOT NULL,
+          details TEXT,
+          timestamp TEXT NOT NULL
+        )
+      ''');
+    } catch (e) {
+      // Table already exists, ignore
     }
 
     return db;
@@ -140,6 +167,12 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+
+    await LoggerService.instance.info(
+      'SCORES',
+      'Transaction $id status changed to $newStatus',
+    );
+
     DashboardNotifier.instance.notifyDashboardUpdate();
   }
 
@@ -464,5 +497,56 @@ class DatabaseHelper {
     });
 
     DashboardNotifier.instance.notifyDashboardUpdate();
+  }
+
+  // System Logs Methods
+  Future<void> insertLog({
+    required String level,
+    required String category,
+    required String message,
+    String? details,
+  }) async {
+    final db = await database;
+    await db.insert('SystemLogs', {
+      'level': level,
+      'category': category,
+      'message': message,
+      'details': details,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getSystemLogs({
+    String? level,
+    String? category,
+    int limit = 200,
+  }) async {
+    final db = await database;
+    String whereClause = '';
+    List<dynamic> whereArgs = [];
+
+    if (level != null && level.isNotEmpty && level != 'ALL') {
+      whereClause += 'level = ?';
+      whereArgs.add(level);
+    }
+
+    if (category != null && category.isNotEmpty && category != 'ALL') {
+      if (whereClause.isNotEmpty) whereClause += ' AND ';
+      whereClause += 'category = ?';
+      whereArgs.add(category);
+    }
+
+    return await db.query(
+      'SystemLogs',
+      where: whereClause.isEmpty ? null : whereClause,
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
+      orderBy: 'id DESC',
+      limit: limit,
+    );
+  }
+
+  Future<void> clearSystemLogs() async {
+    final db = await database;
+    await db.delete('SystemLogs');
   }
 }

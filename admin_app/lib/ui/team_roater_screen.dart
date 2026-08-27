@@ -1,7 +1,6 @@
 import 'package:admin_app/database/db_helper.dart';
 import 'package:flutter/material.dart';
 import '../utils/app_localizations.dart';
-import '../theme/app_theme.dart';
 
 class TeamRosterScreen extends StatelessWidget {
   final int teamId;

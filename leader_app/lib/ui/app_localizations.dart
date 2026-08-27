@@ -133,6 +133,11 @@ class AppLocalizations {
       'offline_data_ready': 'Offline Data Ready',
       'syncing_data': 'Syncing Data...',
       'no_internet_connection': 'Offline — No server connection',
+      'sync_offline_data': 'Sync Offline Data',
+      'downloading_members': 'Downloading teams & members...',
+      'tap_to_refresh_offline': 'Tap to refresh offline cache',
+      'tap_to_download_offline': 'Tap to download for offline use',
+      'go_online_to_sync': 'Connect to server to sync data',
     },
     'ar': {
       'settings': 'الإعدادات',
@@ -255,6 +260,11 @@ class AppLocalizations {
       'tag_violation': 'مخالفة قوانين (-)',
       'offline_data_ready': 'البيانات جاهزة للعمل بدون اتصال',
       'syncing_data': 'جاري مزامنة البيانات...',
+      'sync_offline_data': 'مزامنة البيانات للعمل بدون اتصال',
+      'downloading_members': 'جاري تحميل الفرق والأعضاء...',
+      'tap_to_refresh_offline': 'اضغط لتحديث البيانات المحفوظة',
+      'tap_to_download_offline': 'اضغط للتحميل للعمل بدون اتصال',
+      'go_online_to_sync': 'اتصل بالخادم لمزامنة البيانات',
     },
   };
 

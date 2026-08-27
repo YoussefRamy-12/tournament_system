@@ -249,7 +249,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _confirmClearDatabase(AppLocalizations loc) {
-    List<String> tablesToClear = ['Transactions', 'Members', 'Teams', 'leaders'];
     Map<String, bool> selection = {
       'Transactions': false,
       'Members': false,
@@ -323,7 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         
                         Navigator.pop(ctx);
                         await DatabaseHelper().clearSelectedData(selected);
-                        if (mounted) {
+                        if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(loc.translate('clear_success')),

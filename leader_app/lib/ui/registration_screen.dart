@@ -133,13 +133,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: connectivity.isOnline
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.orange.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
                       color: connectivity.isOnline
-                          ? Colors.green.withOpacity(0.5)
-                          : Colors.orange.withOpacity(0.5),
+                          ? Colors.green.withValues(alpha: 0.5)
+                          : Colors.orange.withValues(alpha: 0.5),
                     ),
                   ),
                   child: Row(

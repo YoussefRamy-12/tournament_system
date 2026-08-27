@@ -8,6 +8,10 @@ class ConnectivityProvider with ChangeNotifier {
   final StorageService _storage;
   WebSocketChannel? _channel;
   Timer? _heartbeatTimer;
+  // A single, cancellable reconnect timer. Using Timer instead of
+  // Future.delayed prevents unbounded timer pile-up when _reconnect() is
+  // called many times in quick succession (e.g., 50 channels closing at once).
+  Timer? _reconnectTimer;
 
   bool _isOnline = false;
   bool _isConnecting = false;
@@ -24,16 +28,26 @@ class ConnectivityProvider with ChangeNotifier {
   ConnectivityProvider({required StorageService storage}) : _storage = storage;
 
   Future<void> connect() async {
-    if (_isOnline || _isConnecting) return;
+    // Cancel any pending reconnect — this call IS the reconnect.
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+
+    // BUG-A FIX: Set _isConnecting = true BEFORE the first await.
+    // Without this, multiple concurrent connect() calls all pass the guard
+    // during the event-loop yield of the storage reads, creating a WS storm.
+    if (_isOnline || _isConnecting || _channel != null) return;
+    _isConnecting = true;
+    _connectionFailed = false;
+    notifyListeners();
 
     final baseUrl = await _storage.getUrl();
     final leaderId = await _storage.getOrGenerateLeaderId();
 
-    if (baseUrl == null) return;
-
-    _isConnecting = true;
-    _connectionFailed = false;
-    notifyListeners();
+    if (baseUrl == null) {
+      _isConnecting = false;
+      notifyListeners();
+      return;
+    }
 
     // Set timeout for initial connection
     _connectionTimeoutTimer?.cancel();
@@ -56,16 +70,22 @@ class ConnectivityProvider with ChangeNotifier {
     final wsUrl = '${cleanBase.replaceFirst('http', 'ws')}/ws';
 
     try {
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      _channel?.ready.catchError(
-        (_) {},
-      ); // Suppress unhandled exception from the package
-      _channel?.stream.listen(
+      // BUG-C FIX: Capture the channel in a LOCAL variable and use that in
+      // all closures. _channel (the field) can be reassigned by the time
+      // onDone fires, so reading _channel?.closeCode gives the wrong value.
+      final channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _channel = channel;
+
+      channel.ready.catchError((_) {}); // Suppress unhandled package exception
+
+      channel.stream.listen(
         (message) {
+          // Ignore messages from a stale channel that was already replaced.
+          if (_channel != channel) return;
           try {
             final data = jsonDecode(message);
             if (data['status'] == 'connected') {
-              _channel?.sink.add(leaderId);
+              channel.sink.add(leaderId);
               _isConnecting = false;
               _connectionTimeoutTimer?.cancel();
               _connectionFailed = false;
@@ -81,12 +101,27 @@ class ConnectivityProvider with ChangeNotifier {
           }
         },
         onDone: () {
+          // Ignore events from a stale channel that was already replaced.
+          if (_channel != channel) return;
+
           _isConnecting = false;
+
+          // BUG-C FIX: Read closeCode from the LOCAL 'channel' capture, NOT
+          // from _channel (the field). The field may already point to a newer
+          // channel by the time this fires. Close code 4001 means the server
+          // displaced this connection because a newer one arrived — in that
+          // case, don't reconnect, the new channel is already taking over.
+          final code = channel.closeCode;
+          _channel = null;
           _setOnline(false);
-          _reconnect();
+          if (code != 4001) {
+            _reconnect();
+          }
         },
         onError: (error) {
+          if (_channel != channel) return;
           _isConnecting = false;
+          _channel = null;
           _setOnline(false);
           _reconnect();
         },
@@ -95,6 +130,7 @@ class ConnectivityProvider with ChangeNotifier {
       _startHeartbeat();
     } catch (e) {
       _isConnecting = false;
+      _channel = null;
       _setOnline(false);
       _reconnect();
     }
@@ -132,7 +168,15 @@ class ConnectivityProvider with ChangeNotifier {
 
   void _reconnect() {
     _stopHeartbeat();
-    Future.delayed(const Duration(seconds: 5), () {
+    // BUG-B FIX: Use a single cancellable Timer instead of Future.delayed.
+    // Future.delayed creates a new, untracked timer on every call. If
+    // _reconnect() is called 50 times rapidly (50 channels closing at once),
+    // you get 50 delayed timers all firing simultaneously 5s later, creating
+    // 50 new channels. With a cancellable Timer, each new call replaces the
+    // previous one — only ONE reconnect attempt ever fires.
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      _reconnectTimer = null;
       if (!_isOnline) {
         connect();
       }
@@ -148,6 +192,8 @@ class ConnectivityProvider with ChangeNotifier {
 
   void disconnect() {
     _stopHeartbeat();
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
     _connectionTimeoutTimer?.cancel();
     _channel?.sink.close();
     _channel = null;

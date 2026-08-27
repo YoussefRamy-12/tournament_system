@@ -181,11 +181,11 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
                           ),
                           filled: true,
                           fillColor: isDark
-                              ? AppTheme.darkBg.withOpacity(0.5)
-                              : Colors.grey.withOpacity(0.05),
+                              ? AppTheme.darkBg.withValues(alpha: 0.5)
+                              : Colors.grey.withValues(alpha: 0.05),
                         ),
                         hint: Text(loc.translate('select_tag')),
-                        value: _selectedTag,
+                        initialValue: _selectedTag,
                         items: TournamentConstants.scoreTags.map((tag) {
                           // Map raw tag names to localized names
                           String localizedTag = tag;
@@ -248,7 +248,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
       height: 50,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+        color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Row(
@@ -270,7 +270,7 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
             color: isSelected ? AppTheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(21),
             boxShadow: isSelected
-                ? [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
+                ? [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
                 : null,
           ),
           child: Center(
@@ -288,6 +288,16 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
   }
 
   Widget _buildMemberDropdown(AppLocalizations loc, bool isDark, List<Member> members) {
+    // Match selected member by ID to prevent DropdownMenuItem assertion crash
+    Member? selectedMemberInList;
+    if (_selectedMember != null) {
+      try {
+        selectedMemberInList = members.firstWhere((m) => m.id == _selectedMember!.id);
+      } catch (_) {
+        selectedMemberInList = null;
+      }
+    }
+
     return PremiumCard(
       child: DropdownButtonFormField<Member>(
         decoration: InputDecoration(
@@ -298,9 +308,10 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: isDark ? AppTheme.darkBg.withOpacity(0.5) : Colors.grey.withOpacity(0.05),
+          fillColor: isDark ? AppTheme.darkBg.withValues(alpha: 0.5) : Colors.grey.withValues(alpha: 0.05),
         ),
-        value: _selectedMember,
+        initialValue: selectedMemberInList,
+        hint: Text(members.isEmpty ? 'Loading members...' : loc.translate('select_member')),
         items: members.map((member) {
           return DropdownMenuItem(value: member, child: Text(member.name));
         }).toList(),
@@ -322,8 +333,8 @@ class _ScoringFormScreenState extends State<ScoringFormScreen> {
       height: 50,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: color.withOpacity(0.1),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withValues(alpha: 0.1),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,

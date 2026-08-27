@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../services/logger_service.dart';
 
 // import 'package:network_info_plus/network_info_plus.dart';
 
@@ -38,7 +39,7 @@ class NetworkService {
         }
       }
     } catch (e) {
-      print("Error getting Local IPs: $e");
+      LoggerService.instance.error('NETWORK', 'Error getting Local IPs: $e');
     }
     return foundIps.toSet().toList(); // Return unique IPs
   }

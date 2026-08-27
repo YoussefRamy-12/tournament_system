@@ -73,7 +73,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
                           height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppTheme.primary.withOpacity(0.1),
+                            color: AppTheme.primary.withValues(alpha: 0.1),
                           ),
                         )
                         .animate(onPlay: (controller) => controller.repeat())
@@ -133,7 +133,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen> {
                           .animate(onPlay: (controller) => controller.repeat())
                           .shimmer(
                             duration: 1.5.seconds,
-                            color: AppTheme.secondary.withOpacity(0.5),
+                            color: AppTheme.secondary.withValues(alpha: 0.5),
                           ),
                     ],
                   ),

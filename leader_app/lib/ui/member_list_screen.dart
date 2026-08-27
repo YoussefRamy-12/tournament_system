@@ -130,7 +130,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
             Icon(
               Icons.people_outline_rounded,
               size: 80,
-              color: AppTheme.primary.withOpacity(0.2),
+              color: AppTheme.primary.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 24),
             Text(

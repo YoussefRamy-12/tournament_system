@@ -124,7 +124,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             Icon(
               Icons.history_rounded,
               size: 80,
-              color: AppTheme.primary.withOpacity(0.2),
+              color: AppTheme.primary.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 24),
             Text(
@@ -219,7 +219,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
+                          color: color.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -298,8 +298,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
               ),
-            )
-            .toList(),
+            ),
       ],
     ).animate().fadeIn(duration: 500.ms).slideX(begin: 0.05, end: 0);
   }

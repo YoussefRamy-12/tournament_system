@@ -73,14 +73,12 @@ class SkeletonLoader extends StatelessWidget {
 class _SkeletonBlock extends StatelessWidget {
   final double width;
   final double height;
-  final double borderRadius;
   final Color baseColor;
   final Color highlightColor;
 
   const _SkeletonBlock({
     required this.width,
     required this.height,
-    this.borderRadius = 8,
     required this.baseColor,
     required this.highlightColor,
   });
@@ -92,7 +90,7 @@ class _SkeletonBlock extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: baseColor,
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: BorderRadius.circular(8),
       ),
     ).animate(onPlay: (controller) => controller.repeat())
      .shimmer(duration: 1500.ms, color: highlightColor);

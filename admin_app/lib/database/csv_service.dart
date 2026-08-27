@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:csv/csv.dart';
 import '../database/db_helper.dart';
 import '../server/dashboard_notifier.dart';
+import '../services/logger_service.dart';
 
 class CsvService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -20,16 +20,19 @@ class CsvService {
 
   Future<void> importMembersFromCsv(String filePath) async {
     final file = File(filePath);
-    final csvString = await file.readAsString();
+    await importCsvFromFile(file);
+  }
 
-    // Convert CSV string into a List of Lists
+  Future<void> importCsvFromFile(File file) async {
+    final csvString = await file.readAsString();
+    await importCsvFromString(csvString);
+  }
+
+  Future<void> importCsvFromString(String csvString) async {
     // We use shouldParseNumbers: false to keep everything as strings
     final List<List<dynamic>> fields = const CsvToListConverter().convert(csvString);
 
-    print("📊 CSV Parsing: Found ${fields.length} rows.");
-    if (fields.isNotEmpty) {
-      print("📝 First row content: ${fields[0]}");
-    }
+    LoggerService.instance.info('CSV', 'CSV Parsing: Found ${fields.length} rows.');
 
     if (fields.isEmpty) return;
 
@@ -39,7 +42,7 @@ class CsvService {
     if (fields.length > 1) {
       final firstRow = fields[0].join().toLowerCase();
       if (firstRow.contains("team") || firstRow.contains("name")) {
-        print("ℹ️ Skipping header row.");
+        LoggerService.instance.debug('CSV', 'Skipping header row');
         startIndex = 1;
       }
     }
@@ -48,20 +51,19 @@ class CsvService {
     for (var i = startIndex; i < fields.length; i++) {
       final row = fields[i];
       if (row.length < 2) {
-        print("⚠️ Skipping invalid row $i: $row");
+        LoggerService.instance.warning('CSV', 'Skipping invalid row $i: $row');
         continue;
       }
 
       String teamName = row[0].toString().trim();
       String memberName = row[1].toString().trim();
 
-      print("🔄 Importing: Team=$teamName, Member=$memberName");
       await _syncMemberToDb(teamName, memberName);
     }
     
     // Notify the dashboard and other listeners that data has changed
     DashboardNotifier.instance.notifyDashboardUpdate();
-    print("✅ CSV Import completed.");
+    LoggerService.instance.info('CSV', 'CSV Import completed successfully.');
   }
 
   Future<void> _syncMemberToDb(String teamName, String memberName) async {
@@ -77,13 +79,13 @@ class CsvService {
     int teamId;
     if (teamResult.isEmpty) {
       teamId = await db.insert('teams', {'name': teamName});
-      print("➕ Created new team: $teamName (ID: $teamId)");
+      LoggerService.instance.info('CSV', 'Created new team: $teamName (ID: $teamId)');
     } else {
       teamId = teamResult.first['id'] as int;
     }
 
     // 2. Insert the Member linked to that Team ID
     int memberId = await db.insert('members', {'team_id': teamId, 'name': memberName});
-    print("👤 Inserted member: $memberName (ID: $memberId) into Team ID: $teamId");
+    LoggerService.instance.info('CSV', 'Inserted member: $memberName (ID: $memberId) into Team ID: $teamId');
   }
 }

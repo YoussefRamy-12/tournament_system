@@ -455,7 +455,7 @@ class _EntityControlListState extends State<EntityControlList> {
                       ),
                       const SizedBox(height: AppTheme.spaceMd),
                       DropdownButtonFormField<int>(
-                        value: selectedTeamId,
+                        initialValue: selectedTeamId,
                         decoration: InputDecoration(
                           labelText: loc.translate("assign_to_team"),
                           border: OutlineInputBorder(
@@ -488,8 +488,9 @@ class _EntityControlListState extends State<EntityControlList> {
                       ),
                       onPressed: () async {
                         if (nameController.text.isEmpty ||
-                            selectedTeamId == null)
+                            selectedTeamId == null) {
                           return;
+                        }
                         final db = await _db.database;
                         final data = {
                           'name': nameController.text,

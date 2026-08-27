@@ -6,6 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:admin_app/database/db_helper.dart';
 import 'package:admin_app/server/online_leader_tracker.dart';
 import 'package:admin_app/server/dashboard_notifier.dart';
+import 'package:admin_app/services/logger_service.dart';
 
 class ApiRouter {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -38,32 +39,38 @@ class ApiRouter {
     });
 
     router.post('/submit-score', (Request request) async {
-      print('📥 ApiRouter: Received /submit-score request');
       final payload = await request.readAsString();
       final data = jsonDecode(payload);
 
       final db = await _dbHelper.database;
+      final status = data['status'] ?? 'PENDING';
+      final targetType = data['targetType'] ?? 'MEMBER';
 
       await db.insert('transactions', {
         'id': data['id'],
-        'leader_id':
-            data['leaderId'], // Matches the 'leaderId' in Model.toJson()
+        'leader_id': data['leaderId'],
         'target_id': data['targetId'],
+        'target_type': targetType,
         'points': data['points'],
         'tag': data['tag'],
-        'description': data['description'],
-        'status': 'PENDING',
+        'description': data['description'] ?? '',
+        'status': status,
         'timestamp': data['timestamp'],
       });
 
-      // Notify dashboard of new pending transaction
+      await LoggerService.instance.info(
+        'SCORES',
+        'Score submitted (${data['points']} pts) by leader ${data['leaderId']}',
+        details: 'Tag: ${data['tag']}, Target: $targetType #${data['targetId']}, Status: $status',
+      );
+
+      // Notify dashboard of new transaction
       DashboardNotifier.instance.notifyDashboardUpdate();
 
       return Response.ok(jsonEncode({'status': 'success'}));
     });
 
     router.post('/submit-bulk-score', (Request request) async {
-      print('📥 ApiRouter: Received /submit-bulk-score request');
       final payload = await request.readAsString();
       final data = jsonDecode(payload);
 
@@ -76,28 +83,12 @@ class ApiRouter {
         timestamp: data['timestamp'],
       );
 
-      return Response.ok(jsonEncode({'status': 'success'}));
-    });
+      await LoggerService.instance.info(
+        'SCORES',
+        'Bulk score submitted (${data['points']} pts) by leader ${data['leaderId']}',
+        details: 'Tag: ${data['tag']}, Team ID: ${data['teamId']}',
+      );
 
-    router.post('/submit-score', (Request request) async {
-      print('📥 ApiRouter: Received /submit-score request');
-      final payload = await request.readAsString();
-      final data = jsonDecode(payload);
-
-      final db = await _dbHelper.database;
-      await db.insert('transactions', {
-        'id': data['id'],
-        'leader_id': data['leaderId'],
-        'target_id': data['targetId'],
-        'target_type': data['targetType'] ?? 'MEMBER',
-        'points': data['points'],
-        'tag': data['tag'],
-        'description': data['description'] ?? '',
-        'status': data['status'],
-        'timestamp': data['timestamp'],
-      });
-
-      DashboardNotifier.instance.notifyDashboardUpdate();
       return Response.ok(jsonEncode({'status': 'success'}));
     });
 
@@ -134,12 +125,16 @@ class ApiRouter {
       );
 
       if (existing.isNotEmpty) {
-        // If they exist, RESET their status to PENDING so the admin sees them again
+        // If they exist, only reset to PENDING if they were NOT already APPROVED.
+        // An APPROVED leader reconnecting after going offline should stay APPROVED —
+        // overwriting to PENDING was causing the auth/connection loop.
+        final currentStatus = existing.first['status'] as String? ?? '';
+        final newStatus = currentStatus == 'APPROVED' ? 'APPROVED' : 'PENDING';
         await db.update(
           'leaders',
           {
             'name': data['name'],
-            'status': 'PENDING',
+            'status': newStatus,
             'device_info': data['deviceInfo'],
           },
           where: 'id = ?',
@@ -154,6 +149,12 @@ class ApiRouter {
           'device_info': data['deviceInfo'],
         });
       }
+
+      await LoggerService.instance.info(
+        'LEADER',
+        'Leader registered: ${data['name']} (${data['id']})',
+        details: 'Device Info: ${data['deviceInfo']}',
+      );
 
       DashboardNotifier.instance.notifyDashboardUpdate();
 
@@ -221,7 +222,7 @@ class ApiRouter {
       '/ws',
       webSocketHandler((WebSocketChannel webSocket) {
         String? currentLeaderId;
-        print('🌐 WS: New connection attempt');
+        LoggerService.instance.debug('WEBSOCKET', 'New connection attempt');
         
         // Track as unauthenticated initially
         OnlineLeaderTracker.instance.trackUnauthenticated(webSocket);
@@ -237,25 +238,30 @@ class ApiRouter {
                 currentLeaderId!,
                 webSocket,
               );
-              print('📱 WebSocket Auth: Leader identified as $currentLeaderId');
+              LoggerService.instance.info('WEBSOCKET', 'Leader authenticated as $currentLeaderId');
             } else {
               // Heartbeat
               OnlineLeaderTracker.instance.recordPing(currentLeaderId, webSocket);
               if (message != "ping") {
-                print('📨 WS Message from $currentLeaderId: $message');
+                LoggerService.instance.debug('WEBSOCKET', 'Message from $currentLeaderId: $message');
               }
             }
           },
           onDone: () {
             if (currentLeaderId != null) {
-              print('📱 WebSocket Closed: $currentLeaderId');
+              // This fires for both intentional displacement (code 4001) and
+              // genuine disconnects. removeChannel() guards against removing
+              // a newer connection, so this is safe in both cases.
+              final code = webSocket.closeCode;
+              final label = code == 4001 ? 'Displaced connection closed' : 'Connection closed';
+              LoggerService.instance.info('WEBSOCKET', '$label for leader: $currentLeaderId');
             } else {
-              print('📱 WebSocket Closed: Unknown leader');
+              LoggerService.instance.debug('WEBSOCKET', 'Unauthenticated connection closed');
             }
             OnlineLeaderTracker.instance.removeChannel(webSocket, currentLeaderId);
           },
           onError: (error) {
-            print('📱 WebSocket Error ($currentLeaderId): $error');
+            LoggerService.instance.error('WEBSOCKET', 'Error for $currentLeaderId: $error');
             OnlineLeaderTracker.instance.removeChannel(webSocket, currentLeaderId);
           },
         );

@@ -1,7 +1,4 @@
-import 'package:admin_app/database/db_helper.dart';
 import 'package:admin_app/providers/dashboard_provider.dart';
-import 'package:admin_app/server/dashboard_notifier.dart';
-import 'package:admin_app/providers/settings_provider.dart';
 import 'package:admin_app/utils/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -16,6 +13,7 @@ import 'package:admin_app/ui/connection_screen.dart';
 import 'package:admin_app/ui/full_control_screen.dart';
 import 'package:admin_app/ui/leader_approval_screen.dart';
 import 'package:admin_app/ui/leaderboard_screen.dart';
+import 'package:admin_app/ui/logs_screen.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -102,6 +100,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       Icons.monitor_rounded,
                       Colors.indigo,
                       () => const ProjectorStatsScreen(),
+                    ),
+                    _DashCard(
+                      "System Logs",
+                      Icons.article_rounded,
+                      Colors.blueGrey,
+                      () => const LogsScreen(),
                     ),
                   ]),
                   const SizedBox(height: 32),

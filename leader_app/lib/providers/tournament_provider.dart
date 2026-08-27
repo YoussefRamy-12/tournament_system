@@ -15,12 +15,14 @@ class TournamentProvider with ChangeNotifier {
   String? _errorMessage;
   bool isServerOnline = false; // Tracks websocket status
   bool _isOfflineDataReady = false;
+  bool _isSyncing = false;
 
   List<Team> get teams => _teams;
   List<Map<String, dynamic>> get history => _history;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isOfflineDataReady => _isOfflineDataReady;
+  bool get isSyncing => _isSyncing;
 
   TournamentProvider({required ApiService api, required StorageService storage})
       : _api = api,
@@ -53,15 +55,23 @@ class TournamentProvider with ChangeNotifier {
   }
 
   Future<void> fetchMembers(int teamId) async {
-    _setLoading(true);
+    // If members are already in memory, don't block UI with loading indicator
+    if (!_membersMap.containsKey(teamId)) {
+      _setLoading(true);
+    }
     try {
-      if (!isServerOnline) throw Exception("Server is offline");
-      final url = await _storage.getUrl();
-      if (url == null) throw Exception("Server URL not found");
-      final members = await _api.fetchMembers(url, teamId);
-      _membersMap[teamId] = members;
-      await _storage.saveCachedMembers(teamId, members.map((m) => m.toJson()).toList());
-      _errorMessage = null;
+      if (isServerOnline) {
+        final url = await _storage.getUrl();
+        if (url != null) {
+          final members = await _api.fetchMembers(url, teamId);
+          _membersMap[teamId] = members;
+          await _storage.saveCachedMembers(teamId, members.map((m) => m.toJson()).toList());
+          _errorMessage = null;
+          notifyListeners();
+          return;
+        }
+      }
+      throw Exception("Server is offline");
     } catch (e) {
       final cached = await _storage.getCachedMembers(teamId);
       if (cached != null) {
@@ -76,8 +86,8 @@ class TournamentProvider with ChangeNotifier {
   }
 
   Future<void> prefetchOfflineData() async {
-    if (!isServerOnline) return;
-    _isOfflineDataReady = false;
+    if (!isServerOnline) return; // Can't sync when offline
+    _isSyncing = true;
     notifyListeners();
     try {
       final url = await _storage.getUrl();
@@ -99,9 +109,13 @@ class TournamentProvider with ChangeNotifier {
       }).toList();
       
       await Future.wait(futures);
+      
+      // Only mark ready when data is genuinely available
+      _isOfflineDataReady = _teams.isNotEmpty &&
+          _teams.every((t) => _membersMap.containsKey(t.id));
     } catch (_) {
     } finally {
-      _isOfflineDataReady = true;
+      _isSyncing = false;
       notifyListeners();
     }
   }
