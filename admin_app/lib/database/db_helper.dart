@@ -7,15 +7,30 @@ import 'package:admin_app/server/dashboard_notifier.dart';
 import 'package:admin_app/services/logger_service.dart';
 
 class DatabaseHelper {
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  factory DatabaseHelper() => _instance;
+  DatabaseHelper._internal();
+
   static Database? _db;
+  static Future<Database>? _initFuture;
 
   Future<Database> get database async {
-    if (_db != null) return _db!;
-    _db = await initDB();
-    return _db!;
+    if (_db != null && _db!.isOpen) return _db!;
+    if (_initFuture != null) return _initFuture!;
+    
+    _initFuture = _initDBInternal();
+    try {
+      _db = await _initFuture!;
+      return _db!;
+    } catch (e) {
+      _initFuture = null;
+      rethrow;
+    }
   }
 
-  Future<Database> initDB() async {
+  Future<Database> initDB() => database;
+
+  static Future<Database> _initDBInternal() async {
     // 1. Initialize FFI for Desktop
     sqfliteFfiInit();
     var databaseFactory = databaseFactoryFfi;
@@ -30,13 +45,20 @@ class DatabaseHelper {
     }
     
     final path = join(dbPath, "tournament.db");
-    LoggerService.instance.info('DATABASE', 'Database initialized at $path');
+    // ignore: avoid_print
+    print('[INFO] [DATABASE] Database initialized at $path');
 
     // 3. Open/Create the database
     final db = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
         version: 1,
+        onOpen: (db) async {
+          try {
+            await db.execute('PRAGMA journal_mode=WAL;');
+            await db.execute('PRAGMA busy_timeout=5000;');
+          } catch (_) {}
+        },
         onCreate: (db, version) async {
           // Create Teams Table
           await db.execute('''

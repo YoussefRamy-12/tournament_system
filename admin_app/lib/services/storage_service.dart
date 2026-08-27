@@ -6,32 +6,50 @@ class StorageService {
   static const String _fontSizeKey = "font_size_factor";
 
   Future<String?> getThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_themeKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_themeKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> saveThemeMode(String mode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_themeKey, mode);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_themeKey, mode);
+    } catch (_) {}
   }
 
   Future<String?> getLanguageCode() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_langKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_langKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> saveLanguageCode(String code) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_langKey, code);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_langKey, code);
+    } catch (_) {}
   }
 
   Future<double> getFontSizeFactor() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_fontSizeKey) ?? 1.0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getDouble(_fontSizeKey) ?? 1.0;
+    } catch (_) {
+      return 1.0;
+    }
   }
 
   Future<void> saveFontSizeFactor(double factor) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_fontSizeKey, factor);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_fontSizeKey, factor);
+    } catch (_) {}
   }
 }

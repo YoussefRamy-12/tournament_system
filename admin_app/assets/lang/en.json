@@ -136,5 +136,10 @@
   "clear_database_confirm_title": "Clear Everything?",
   "clear_database_confirm_content": "This will permanently delete all data in the database. This action cannot be undone.",
   "clear_success": "Database cleared successfully",
-  "select_all": "Select All"
+  "select_all": "Select All",
+  "open_in_new_window": "Open in New Window",
+  "open_in_app": "Open in App",
+  "projector_window_options": "Projector View Mode",
+  "projector_window_desc": "Open the live scoreboard on a second screen/projector or within this window",
+  "refresh": "Refresh"
 }

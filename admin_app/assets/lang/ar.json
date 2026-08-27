@@ -137,5 +137,10 @@
   "clear_database_confirm_title": "مسح كل شيء؟",
   "clear_database_confirm_content": "سيؤدي هذا إلى حذف جميع البيانات في قاعدة البيانات نهائياً. لا يمكن التراجع عن هذا الإجراء.",
   "clear_success": "تم مسح قاعدة البيانات بنجاح",
-  "select_all": "تحديد الكل"
+  "select_all": "تحديد الكل",
+  "open_in_new_window": "فتح في نافذة منفصلة",
+  "open_in_app": "فتح داخل التطبيق",
+  "projector_window_options": "وضع عرض العارض",
+  "projector_window_desc": "افتح لوحة النتائج المباشرة على شاشة ثانية أو عارض أو داخل هذه النافذة",
+  "refresh": "تحديث"
 }

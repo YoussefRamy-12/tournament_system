@@ -14,6 +14,7 @@ import 'package:admin_app/ui/full_control_screen.dart';
 import 'package:admin_app/ui/leader_approval_screen.dart';
 import 'package:admin_app/ui/leaderboard_screen.dart';
 import 'package:admin_app/ui/logs_screen.dart';
+import 'package:admin_app/services/projector_window_service.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -100,6 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       Icons.monitor_rounded,
                       Colors.indigo,
                       () => const ProjectorStatsScreen(),
+                      onTap: () => _showProjectorOptions(context, loc),
                     ),
                     _DashCard(
                       "System Logs",
@@ -414,15 +416,229 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
   }
+
+  void _showProjectorOptions(BuildContext context, AppLocalizations loc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.monitor_rounded, color: Colors.indigo),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    loc.translate("projector_window_options"),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  loc.translate("projector_window_desc"),
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Option 1: Open in Dedicated Window
+                InkWell(
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      await ProjectorWindowService.openProjectorWindow();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(loc.translate("open_in_new_window")),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Error opening window: $e"),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.withValues(alpha: isDark ? 0.2 : 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.indigo.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: Colors.indigo,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.open_in_new_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                loc.translate("open_in_new_window"),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "${loc.translate("projector_view")} (Second Screen / Split)",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.white60 : Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                          color: Colors.indigo,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Option 2: Open in App Window
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ProjectorStatsScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.white : Colors.black).withValues(
+                        alpha: 0.04,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: (isDark ? Colors.white : Colors.black).withValues(
+                          alpha: 0.08,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.fullscreen_rounded,
+                            color: Colors.blueGrey,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                loc.translate("open_in_app"),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                loc.translate("projector_view"),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.white60 : Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(loc.translate("cancel")),
+              ),
+            ],
+          ),
+    );
+  }
 }
 
 class _DashCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color color;
-  final Widget Function() destination;
+  final Widget Function()? destination;
+  final VoidCallback? onTap;
 
-  const _DashCard(this.title, this.icon, this.color, this.destination);
+  const _DashCard(
+    this.title,
+    this.icon,
+    this.color,
+    this.destination, {
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -430,10 +646,15 @@ class _DashCard extends StatelessWidget {
 
     return InkWell(
           onTap:
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => destination()),
-              ),
+              onTap ??
+              () {
+                if (destination != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => destination!()),
+                  );
+                }
+              },
           borderRadius: BorderRadius.circular(24),
           child: Container(
             decoration: BoxDecoration(

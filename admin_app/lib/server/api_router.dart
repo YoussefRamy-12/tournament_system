@@ -14,6 +14,19 @@ class ApiRouter {
   Router get router {
     final router = Router();
 
+    // 0. GET projector stats
+    router.get('/projector-stats', (Request request) async {
+      final teams = await _dbHelper.getLeaderboardData();
+      final top10 = await _dbHelper.getTop10Players();
+      return Response.ok(
+        jsonEncode({
+          'teams': teams,
+          'top10Players': top10,
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    });
+
     // 1. GET all teams
     router.get('/teams', (Request request) async {
       final db = await _dbHelper.database;
