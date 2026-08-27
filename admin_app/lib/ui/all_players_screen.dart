@@ -56,15 +56,20 @@ class _AllPlayersScreenState extends State<AllPlayersScreen> {
                     }
                     if (snapshot.hasData) _allPlayers = snapshot.data;
                     if (_allPlayers == null || _allPlayers!.isEmpty) {
-                      return Center(child: Text(loc.translate("no_players_found")));
+                      return Center(
+                        child: Text(loc.translate("no_players_found")),
+                      );
                     }
 
                     final filtered =
                         _allPlayers!.where((p) {
                           final name = p['name'].toString().toLowerCase();
                           final team = p['teamName'].toString().toLowerCase();
+                          final id = p['id'].toString().toLowerCase();
                           final q = _searchQuery.toLowerCase();
-                          return name.contains(q) || team.contains(q);
+                          return name.contains(q) ||
+                              team.contains(q) ||
+                              id.contains(q);
                         }).toList();
 
                     return ListView.builder(
@@ -89,7 +94,12 @@ class _AllPlayersScreenState extends State<AllPlayersScreen> {
     );
   }
 
-  Widget _buildPlayerTile(Map<String, dynamic> player, int score, bool isDark, AppLocalizations loc) {
+  Widget _buildPlayerTile(
+    Map<String, dynamic> player,
+    int score,
+    bool isDark,
+    AppLocalizations loc,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(

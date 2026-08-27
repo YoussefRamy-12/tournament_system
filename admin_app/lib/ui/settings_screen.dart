@@ -1,5 +1,6 @@
 import 'package:admin_app/database/csv_service.dart';
 import 'package:admin_app/database/db_helper.dart';
+import 'package:admin_app/database/excel_service.dart';
 import 'package:admin_app/providers/settings_provider.dart';
 import 'package:admin_app/utils/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -17,12 +18,13 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isLoading = false;
+  bool _isImporting = false;
+  bool _isExporting = false;
 
   Future<void> _pickAndImportCsv() async {
     final loc = AppLocalizations.of(context);
     try {
-      setState(() => _isLoading = true);
+      setState(() => _isImporting = true);
 
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -66,7 +68,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isImporting = false);
+    }
+  }
+
+  Future<void> _exportToExcel() async {
+    final loc = AppLocalizations.of(context);
+    try {
+      setState(() => _isExporting = true);
+
+      final now = DateTime.now();
+      final dateStr =
+          "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
+      final defaultFileName = "tournament_data_$dateStr.xlsx";
+
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: loc.translate('export_data'),
+        fileName: defaultFileName,
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+      );
+
+      if (outputFile != null) {
+        if (!outputFile.toLowerCase().endsWith('.xlsx')) {
+          outputFile = '$outputFile.xlsx';
+        }
+
+        final excelService = ExcelExportService();
+        final success = await excelService.exportTournamentData(outputFile);
+
+        if (mounted && success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.translate('export_success')),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppTheme.successColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${loc.translate('export_failed')}: $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.errorColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -210,12 +268,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: AppTheme.spaceXxl),
                     ActionButton(
                       label:
-                          _isLoading
+                          _isImporting
                               ? loc.translate('processing')
                               : loc.translate('select_csv'),
-                      onPressed: _isLoading ? () {} : _pickAndImportCsv,
-                      isLoading: _isLoading,
+                      onPressed: _isImporting ? () {} : _pickAndImportCsv,
+                      isLoading: _isImporting,
                       icon: Icons.file_present_rounded,
+                    ).animate().fadeIn(delay: 400.ms),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppTheme.spaceLg),
+              AppCard(
+                padding: const EdgeInsets.all(AppTheme.spaceXl),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppTheme.spaceXl),
+                      decoration: BoxDecoration(
+                        color: AppTheme.successColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.table_chart_rounded,
+                        size: 60,
+                        color: AppTheme.successColor,
+                      ),
+                    ).animate().scale(
+                      duration: 600.ms,
+                      curve: Curves.easeOutBack,
+                    ),
+                    const SizedBox(height: AppTheme.spaceXl),
+                    Text(
+                      loc.translate('export_data'),
+                      style: AppTheme.headline20.copyWith(
+                        color:
+                            isDark
+                                ? AppTheme.darkTextColor
+                                : AppTheme.lightTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spaceMd),
+                    Text(
+                      loc.translate('download_excel'),
+                      textAlign: TextAlign.center,
+                      style: AppTheme.body16.copyWith(
+                        color:
+                            isDark
+                                ? AppTheme.darkMutedTextColor
+                                : AppTheme.lightMutedTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spaceXxl),
+                    ActionButton(
+                      label:
+                          _isExporting
+                              ? loc.translate('exporting')
+                              : loc.translate('export_excel'),
+                      onPressed: _isExporting ? () {} : _exportToExcel,
+                      isLoading: _isExporting,
+                      icon: Icons.file_download_rounded,
                     ).animate().fadeIn(delay: 400.ms),
                   ],
                 ),
@@ -254,6 +366,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Members': false,
       'Teams': false,
       'leaders': false,
+      'SystemLogs': false,
     };
 
     showDialog(

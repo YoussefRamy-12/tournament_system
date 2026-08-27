@@ -46,7 +46,9 @@ class _EntityControlListState extends State<EntityControlList> {
           _filteredData =
               _data.where((item) {
                 final name = item['name']?.toString().toLowerCase() ?? "";
-                return name.contains(_searchQuery.toLowerCase());
+                final id = item['id']?.toString().toLowerCase() ?? "";
+                return name.contains(_searchQuery.toLowerCase()) ||
+                    id.contains(_searchQuery.toLowerCase());
               }).toList();
         }
       });
@@ -84,7 +86,10 @@ class _EntityControlListState extends State<EntityControlList> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkBackgroundColor : AppTheme.lightBackgroundColor,
+          color:
+              isDark
+                  ? AppTheme.darkBackgroundColor
+                  : AppTheme.lightBackgroundColor,
         ),
         child: Column(
           children: [
@@ -172,9 +177,7 @@ class _EntityControlListState extends State<EntityControlList> {
                                   Icons.search_off_rounded,
                                   size: 64,
                                   color:
-                                      isDark
-                                          ? Colors.white24
-                                          : Colors.black12,
+                                      isDark ? Colors.white24 : Colors.black12,
                                 ),
                                 const SizedBox(height: AppTheme.spaceMd),
                                 Text(
